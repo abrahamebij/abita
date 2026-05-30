@@ -249,16 +249,19 @@ export default function JobDetail() {
       {/* Navigation Header */}
       <header className="border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-20 flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="flex items-center space-x-2 text-sm text-muted hover:text-primary transition-all duration-300"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Dashboard</span>
+          <Link href="/" className="flex items-center hover:opacity-90 transition-opacity duration-300">
+            <img src="/logo_text.png" alt="Abita Logo" className="h-16 w-auto" />
           </Link>
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            Job ID: #{params.id}
-          </span>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-mono text-muted hidden sm:inline">Job #{params.id}</span>
+            <Link
+              href="/dashboard"
+              className="flex items-center space-x-2 text-sm text-muted hover:text-primary transition-all duration-300 border border-border bg-card px-3 py-1.5 rounded-lg shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+          </div>
         </div>
       </header>
 

@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import { ABICORE_CONTRACT_ADDRESS } from "@/lib/config";
 import { ABICORE_ABI } from "@/lib/abi";
 import MarketplaceTeaser from "@/components/MarketplaceTeaser";
-import Logo from "@/components/Logo";
 
 // JobStatus labels and styling (Only blue accents and neutral grey)
 const STATUS_DETAILS = [
@@ -70,12 +69,9 @@ export default function Dashboard() {
       {/* Top Navigation Bar */}
       <header className="border-b border-border bg-card backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Logo size={42} />
-            <span className="text-2xl font-bold tracking-tight text-foreground">
-              Abita
-            </span>
-          </div>
+          <Link href="/" className="flex items-center hover:opacity-90 transition-opacity duration-300">
+            <img src="/logo_text.png" alt="Abita Logo" className="h-16 w-auto" />
+          </Link>
 
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">

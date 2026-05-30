@@ -180,11 +180,19 @@ export default function VerdictPage() {
     <div className="flex-grow flex flex-col min-h-screen bg-background text-foreground font-sans">
       <header className="border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-20 flex items-center justify-between">
-          <Link href={`/job/${jobId}`} className="flex items-center space-x-2 text-sm text-muted hover:text-primary transition-all duration-300">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Escrow Details</span>
+          <Link href="/" className="flex items-center hover:opacity-90 transition-opacity duration-300">
+            <img src="/logo_text.png" alt="Abita Logo" className="h-16 w-auto" />
           </Link>
-          <span className="text-xl font-bold tracking-tight text-foreground">AI Verdict</span>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-mono text-muted hidden sm:inline">Verdict ID #{jobId.toString()}</span>
+            <Link
+              href={`/job/${jobId}`}
+              className="flex items-center space-x-2 text-sm text-muted hover:text-primary transition-all duration-300 border border-border bg-card px-3 py-1.5 rounded-lg shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Escrow Details</span>
+            </Link>
+          </div>
         </div>
       </header>
 
