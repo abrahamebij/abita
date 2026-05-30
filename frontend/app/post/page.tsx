@@ -8,7 +8,7 @@ import { ArrowLeft, ShieldCheck, Wallet, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
-import { usePostJob } from "../../hooks/usePostJob";
+import { usePostJob } from "@/hooks/usePostJob";
 
 /**
  * @notice PostJob Component

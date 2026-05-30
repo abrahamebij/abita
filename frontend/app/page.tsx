@@ -9,9 +9,9 @@ import { Shield, Plus, Wallet, ArrowRight, Gavel, Award } from "lucide-react";
 import { formatEther } from "viem";
 import { toast } from "sonner";
 
-import { ABICORE_CONTRACT_ADDRESS } from "../lib/config";
-import { ABICORE_ABI } from "../lib/abi";
-import MarketplaceTeaser from "../components/MarketplaceTeaser";
+import { ABICORE_CONTRACT_ADDRESS } from "@/lib/config";
+import { ABICORE_ABI } from "@/lib/abi";
+import MarketplaceTeaser from "@/components/MarketplaceTeaser";
 
 // JobStatus labels and styling (Only blue accents and neutral grey)
 const STATUS_DETAILS = [
@@ -50,7 +50,7 @@ export default function Dashboard() {
       id: 1,
       client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-      escrowAmount: 5000000000000000000n, // 5 STT
+      escrowAmount: BigInt("5000000000000000000"), // 5 STT
       requirements: "Design a minimal blue logo. No gradients.",
       status: 2, // Disputed
       disputeCount: 1,
@@ -59,7 +59,7 @@ export default function Dashboard() {
       id: 2,
       client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       freelancer: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-      escrowAmount: 12000000000000000000n, // 12 STT
+      escrowAmount: BigInt("12000000000000000000"), // 12 STT
       requirements: "Write full-stack Next.js contract interface wrapper.",
       status: 0, // Open
       disputeCount: 0,

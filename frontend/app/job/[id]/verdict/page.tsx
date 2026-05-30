@@ -9,18 +9,74 @@ import { ArrowLeft, Brain, Gavel, Award, ShieldAlert, CheckCircle2, ChevronRight
 import Link from "next/link";
 import { toast } from "sonner";
 
-import { useJobData } from "../../../../hooks/useJobData";
-import { useCloseJob } from "../../../../hooks/useCloseJob";
-import { useRetryJob } from "../../../../hooks/useRetryJob";
-import ClientChoice from "../../../../components/ClientChoice";
+import { useJobData } from "@/hooks/useJobData";
+import { useCloseJob } from "@/hooks/useCloseJob";
+import { useRetryJob } from "@/hooks/useRetryJob";
+import ClientChoice from "@/components/ClientChoice";
+
+const MOCK_JOBS: Record<string, any> = {
+  "1": {
+    client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    escrowAmount: 5000000000000000000n, // 5 STT
+    requirements: "Design a minimal blue logo. No gradients.",
+    deliveryNote: "Completed wordmark with solid blue palette. Figma link: figma.com/logo",
+    clientArgument: "Uses gradients, not the minimal style I specified.",
+    freelancerArgument: "Brief said blue palette which I followed exactly. Minimal is subjective.",
+    status: 3, // PendingClientChoice (Set to 3 so offline flow automatically runs the reveal and isClient options!)
+    disputeCount: 1,
+    freelancerWinStreak: 0,
+    lastVerdictWinner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // Client wins in mock
+    pendingRequestId: 123n,
+    clientDisputeStaked: true,
+    freelancerDisputeStaked: true,
+  },
+  "2": {
+    client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    freelancer: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+    escrowAmount: 12000000000000000000n, // 12 STT
+    requirements: "Write full-stack Next.js contract interface wrapper.",
+    deliveryNote: "",
+    clientArgument: "",
+    freelancerArgument: "",
+    status: 0, // Open
+    disputeCount: 0,
+    freelancerWinStreak: 0,
+    lastVerdictWinner: "0x0000000000000000000000000000000000000000",
+    pendingRequestId: 0n,
+    clientDisputeStaked: false,
+    freelancerDisputeStaked: false,
+  }
+};
 
 export default function VerdictPage() {
   const params = useParams();
   const router = useRouter();
-  const { isConnected } = useAccount();
-  const jobId = BigInt(params.id as string);
+  const { address, isConnected } = useAccount();
+  
+  const idStr = typeof params?.id === "string" ? params.id : "";
+  const jobId = idStr ? BigInt(idStr) : 0n;
 
-  const { job, refetch, isLoading: dataLoading } = useJobData(jobId);
+  const { job: contractJob, refetch, isLoading: dataLoading } = useJobData(jobId);
+  
+  // Fallback to mock job if contract read is offline/empty
+  const job = contractJob || (idStr ? MOCK_JOBS[idStr] : undefined) || {
+    client: address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    escrowAmount: 10000000000000000000n, // 10 STT
+    requirements: "Design a responsive interface mock layout.",
+    deliveryNote: "",
+    clientArgument: "",
+    freelancerArgument: "",
+    status: 3, // PendingClientChoice
+    disputeCount: 1,
+    freelancerWinStreak: 0,
+    lastVerdictWinner: address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    pendingRequestId: 0n,
+    clientDisputeStaked: false,
+    freelancerDisputeStaked: false,
+  };
+
   const { closeJob, isPending: closePending, isSuccess: closeSuccess } = useCloseJob();
   const { retryJob, isPending: retryPending, isSuccess: retrySuccess } = useRetryJob();
 
@@ -29,7 +85,7 @@ export default function VerdictPage() {
   const [showWinner, setShowWinner] = useState(false);
   const [escrowAmountCount, setEscrowAmountCount] = useState(0);
 
-  const isClient = job ? useAccount().address?.toLowerCase() === job.client.toLowerCase() : false;
+  const isClient = job && address ? address.toLowerCase() === job.client.toLowerCase() : false;
 
   // Staggered Chain-of-Thought logs
   const chainOfThoughtLogs = [
@@ -123,7 +179,11 @@ export default function VerdictPage() {
     }
   }, [showWinner, job]);
 
-  if (dataLoading || !job) {
+  // Show full-page loader only if we are loading AND don't have cached/mock data
+  const isMock = idStr && MOCK_JOBS[idStr];
+  const showSpinner = dataLoading && !contractJob && !isMock;
+
+  if (showSpinner || !job) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground font-sans">
         <Loader2 className="h-8 w-8 text-primary animate-spin" />
