@@ -6,8 +6,6 @@ import { useAccount, useDisconnect, useReadContract } from "wagmi";
 import Link from "next/link";
 import { Shield, Plus, ArrowRight, Gavel, Award } from "lucide-react";
 import { formatEther } from "viem";
-import { toast } from "sonner";
-
 import { ABICORE_CONTRACT_ADDRESS } from "@/lib/config";
 import { ABICORE_ABI } from "@/lib/abi";
 import MarketplaceTeaser from "@/components/MarketplaceTeaser";
@@ -37,14 +35,7 @@ export default function Dashboard() {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
   
-  // Wallet Connection Notifications via Sonner
-  useEffect(() => {
-    if (address) {
-      toast.success("Wallet connected successfully!", {
-        description: `Active Account: ${address.slice(0, 6)}...${address.slice(-4)}`,
-      });
-    }
-  }, [address]);
+
 
   // Read total jobs from contract
   const { data: totalJobs } = useReadContract({

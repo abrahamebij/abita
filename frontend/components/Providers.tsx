@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { WagmiProvider, useAccount } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { config } from "../lib/config";
 
 /**
@@ -13,10 +14,11 @@ import { config } from "../lib/config";
  * If a wallet is disconnected, it blocks access and redirects to the landing page instantly.
  */
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isConnected, status } = useAccount();
+  const { isConnected, status, address } = useAccount();
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const prevConnectedRef = useRef(isConnected);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -32,6 +34,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       }
     }
   }, [mounted, isConnected, status, pathname, router]);
+
+  // Centralized single connection toast notification
+  useEffect(() => {
+    if (mounted && isConnected && !prevConnectedRef.current && address) {
+      toast.success("Wallet connected successfully!", {
+        description: `Active Account: ${address.slice(0, 6)}...${address.slice(-4)}`,
+      });
+    }
+    if (mounted) {
+      prevConnectedRef.current = isConnected;
+    }
+  }, [mounted, isConnected, address]);
 
   // Show a neutral slate-loading state during hydration and state checks
   if (!mounted || status === "connecting" || status === "reconnecting") {
