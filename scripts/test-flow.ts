@@ -1,6 +1,9 @@
-import { ethers } from "hardhat";
+import { network } from "hardhat";
 
 async function main() {
+  const connection = await network.create();
+  const { ethers } = connection;
+
   const [owner, client, freelancer] = await ethers.getSigners();
   console.log("=== Starting Abita End-to-End Local Simulation ===");
   console.log(`Owner/Treasury: ${owner.address}`);
@@ -90,7 +93,12 @@ async function main() {
   console.log("Calling judgeDispute (anyone can trigger)...");
   const judgeTx = await abiCore.judgeDispute(1);
   await judgeTx.wait();
-  console.log("Judgment completed!");
+  console.log("Judgment requested on-chain!");
+
+  console.log("Triggering asynchronous AI Callback from Mock Platform...");
+  const callbackTx = await mockPlatform.triggerCallback(1);
+  await callbackTx.wait();
+  console.log("AI callback executed successfully!");
 
   job = await abiCore.getJob(1);
   console.log(`Dispute count: ${job.disputeCount} of 5`);

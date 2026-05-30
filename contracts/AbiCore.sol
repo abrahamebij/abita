@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 // Import OpenZeppelin utility library to convert addresses to hex strings
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -282,14 +282,14 @@ contract AbiCore {
             "Freelancer's delivery: ", job.deliveryNote, "\n\n",
             "Client's argument: ", job.clientArgument, "\n\n",
             "Freelancer's argument: ", job.freelancerArgument, "\n\n",
-            "Client wallet: ", job.client.toHexString(20), "\n",
-            "Freelancer wallet: ", job.freelancer.toHexString(20)
+            "Client wallet: ", job.client.toHexString(), "\n",
+            "Freelancer wallet: ", job.freelancer.toHexString()
         ));
 
         // Constrain the AI's output to strictly either the client's or the freelancer's hex address
         string[] memory allowedValues = new string[](2);
-        allowedValues[0] = job.client.toHexString(20);
-        allowedValues[1] = job.freelancer.toHexString(20);
+        allowedValues[0] = job.client.toHexString();
+        allowedValues[1] = job.freelancer.toHexString();
 
         // Encode the payload according to Somnia LLM platform selector "inferString(string,string,bool,string[])"
         bytes memory payload = abi.encodeWithSelector(
@@ -322,14 +322,12 @@ contract AbiCore {
      * @notice Asynchronous callback executed by the Somnia platform once the AI Agent and validators finish inference.
      * @param requestId The ID of the completed request.
      * @param responses The string array response containing the parsed verdict.
-     * @param status The status code returned by the platform.
-     * @param details Additional execution details/logs.
      */
     function handleResponse(
         uint256 requestId,
         string[] calldata responses,
-        uint8 status,
-        bytes calldata details
+        uint8 /* status */,
+        bytes calldata /* details */
     ) external {
         // Ensure ONLY the Somnia Platform can trigger this callback to prevent cheating
         require(msg.sender == address(platform), "Only the Somnia platform can invoke callback");
@@ -348,8 +346,8 @@ contract AbiCore {
         require(responses.length > 0, "Empty response from agent");
 
         string memory winnerStr = responses[0];
-        string memory clientHex = job.client.toHexString(20);
-        string memory freelancerHex = job.freelancer.toHexString(20);
+        string memory clientHex = job.client.toHexString();
+        string memory freelancerHex = job.freelancer.toHexString();
 
         address winner;
         // Compare lowering hex formats to establish the winner address

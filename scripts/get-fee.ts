@@ -1,6 +1,9 @@
-import { ethers } from "hardhat";
+import { network } from "hardhat";
 
 async function main() {
+  const connection = await network.create();
+  const { ethers } = connection;
+
   const platformAddress = "0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776";
   const agentId = "12847293847561029384"; // LLM Agent ID
   const agentVersion = 3;

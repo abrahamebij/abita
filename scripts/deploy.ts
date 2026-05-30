@@ -1,6 +1,9 @@
-import { ethers } from "hardhat";
+import { network } from "hardhat";
 
 async function main() {
+  const connection = await network.create();
+  const { ethers } = connection;
+
   const [deployer] = await ethers.getSigners();
   console.log(`Deploying AbiCore with account: ${deployer.address}`);
 
