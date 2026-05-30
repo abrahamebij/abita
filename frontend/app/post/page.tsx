@@ -9,6 +9,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { usePostJob } from "@/hooks/usePostJob";
+import Logo from "@/components/Logo";
 
 /**
  * @notice PostJob Component
@@ -105,9 +106,7 @@ export default function PostJob() {
           className="rounded-2xl border border-border bg-card p-8 md:p-12 shadow-sm"
         >
           <div className="flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-between rounded-lg bg-primary/10 border border-primary/20 text-primary">
-              <ShieldCheck className="h-5 w-5 mx-auto" />
-            </div>
+            <Logo size={42} />
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
               Initialize Escrow
             </h2>
