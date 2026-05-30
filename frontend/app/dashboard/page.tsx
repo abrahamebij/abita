@@ -21,6 +21,18 @@ const STATUS_DETAILS = [
   { label: "Closed", color: "text-muted bg-background border-border" },
 ];
 
+
+interface DashboardJob {
+  id: number;
+  client: string;
+  freelancer: string;
+  escrowAmount: bigint;
+  requirements: string;
+  status: number;
+  disputeCount: number;
+  isLive?: boolean;
+}
+
 export default function Dashboard() {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
@@ -42,27 +54,104 @@ export default function Dashboard() {
   });
 
   const [activeTab, setActiveTab] = useState<"all" | "active" | "closed">("all");
+  const [liveJobs, setLiveJobs] = useState<DashboardJob[]>([]);
+  const [isLoadingLive, setIsLoadingLive] = useState(false);
 
-  const mockJobs = [
-    {
-      id: 1,
-      client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-      freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-      escrowAmount: BigInt("5000000000000000000"), // 5 STT
-      requirements: "Design a minimal blue logo. No gradients.",
-      status: 2, // Disputed
-      disputeCount: 1,
-    },
-    {
-      id: 2,
-      client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-      freelancer: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-      escrowAmount: BigInt("12000000000000000000"), // 12 STT
-      requirements: "Write full-stack Next.js contract interface wrapper.",
-      status: 0, // Open
-      disputeCount: 0,
+  // Fetch live on-chain jobs dynamically
+  useEffect(() => {
+    let active = true;
+
+    const fetchLiveJobs = async () => {
+      if (!totalJobs || totalJobs === 0n) {
+        if (active) {
+          setLiveJobs([]);
+        }
+        return;
+      }
+
+      setIsLoadingLive(true);
+      try {
+        const { createPublicClient, http } = await import("viem");
+        const { somniaTestnet } = await import("@/lib/config");
+        const client = createPublicClient({
+          chain: somniaTestnet,
+          transport: http(),
+        });
+
+        const jobsList: DashboardJob[] = [];
+        const limit = Number(totalJobs);
+        for (let i = 1; i <= limit; i++) {
+          try {
+            const contractJob = await client.readContract({
+              address: ABICORE_CONTRACT_ADDRESS as `0x${string}`,
+              abi: ABICORE_ABI,
+              functionName: "getJob",
+              args: [BigInt(i)],
+            });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const typedJob = contractJob as any;
+            if (typedJob) {
+              const clientAddr = (Array.isArray(typedJob) ? typedJob[0] : typedJob.client) as string;
+              const freelancerAddr = (Array.isArray(typedJob) ? typedJob[1] : typedJob.freelancer) as string;
+              const escrowAmt = (Array.isArray(typedJob) ? typedJob[2] : typedJob.escrowAmount) as bigint;
+              const reqs = (Array.isArray(typedJob) ? typedJob[3] : typedJob.requirements) as string;
+              const stat = (Array.isArray(typedJob) ? typedJob[7] : typedJob.status) as number;
+              const dispCount = (Array.isArray(typedJob) ? typedJob[8] : typedJob.disputeCount) as number;
+
+              if (
+                clientAddr &&
+                clientAddr !== "0x0000000000000000000000000000000000000000" &&
+                address &&
+                (clientAddr.toLowerCase() === address.toLowerCase() ||
+                 freelancerAddr.toLowerCase() === address.toLowerCase())
+              ) {
+                jobsList.push({
+                  id: i,
+                  client: clientAddr,
+                  freelancer: freelancerAddr,
+                  escrowAmount: escrowAmt,
+                  requirements: reqs,
+                  status: stat,
+                  disputeCount: dispCount,
+                  isLive: true,
+                });
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to fetch job ${i}:`, err);
+          }
+        }
+        // Sort live jobs by ID descending (newest first)
+        jobsList.reverse();
+        if (active) {
+          setLiveJobs(jobsList);
+        }
+      } catch (err) {
+        console.error("Error creating public client:", err);
+      } finally {
+        if (active) {
+          setIsLoadingLive(false);
+        }
+      }
+    };
+
+    fetchLiveJobs();
+
+    return () => {
+      active = false;
+    };
+  }, [totalJobs, address]);
+
+  // Filter jobs based on activeTab selection
+  const filteredJobs = liveJobs.filter((job) => {
+    if (activeTab === "active") {
+      return job.status !== 4; // Not Closed
     }
-  ];
+    return true; // "all"
+  });
+
+  const arbitratedCount = liveJobs.filter(job => job.disputeCount > 0).length;
+  const platformEarnings = BigInt(arbitratedCount) * 2000000000000000000n; // 2 STT per arbitrated job
 
   return (
     <div className="flex-grow flex flex-col min-h-screen bg-background text-foreground">
@@ -117,7 +206,6 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {/* Dynamic Contract Status Stats (All neutral + blue) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           <div className="rounded-xl border border-border bg-card p-6 flex items-center space-x-4 shadow-sm">
             <div className="flex h-12 w-12 rounded-lg bg-primary/10 text-primary">
@@ -126,7 +214,7 @@ export default function Dashboard() {
             <div>
               <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">Secured Contracts</span>
               <span className="text-2xl font-bold text-foreground">
-                {totalJobs !== undefined ? Number(totalJobs) : 2} Active
+                {liveJobs.length} Active
               </span>
             </div>
           </div>
@@ -136,7 +224,9 @@ export default function Dashboard() {
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">AI Arbitrations</span>
-              <span className="text-2xl font-bold text-foreground">1 Adjudicated</span>
+              <span className="text-2xl font-bold text-foreground">
+                {arbitratedCount} Adjudicated
+              </span>
             </div>
           </div>
           <div className="rounded-xl border border-border bg-card p-6 flex items-center space-x-4 shadow-sm">
@@ -145,7 +235,9 @@ export default function Dashboard() {
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">Total Platform Earnings</span>
-              <span className="text-2xl font-bold text-foreground">2.0 STT Earned</span>
+              <span className="text-2xl font-bold text-foreground">
+                {formatEther(platformEarnings)} STT
+              </span>
             </div>
           </div>
         </div>
@@ -179,8 +271,16 @@ export default function Dashboard() {
           className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8"
         >
           <AnimatePresence mode="popLayout">
-            {mockJobs.map((job, idx) => {
-              const statusInfo = STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
+             {isLoadingLive && liveJobs.length === 0 ? (
+               <div className="col-span-full py-8 text-center text-sm text-muted animate-pulse">
+                 Syncing live escrow contracts on Somnia Network...
+               </div>
+             ) : filteredJobs.length === 0 ? (
+               <div className="col-span-full py-16 text-center text-sm text-muted border border-dashed border-border rounded-2xl bg-card shadow-sm">
+                 No active escrow agreements found for your connected wallet address.
+               </div>
+             ) : filteredJobs.map((job, idx) => {
+               const statusInfo = STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
               return (
                 <motion.div
                   key={job.id}

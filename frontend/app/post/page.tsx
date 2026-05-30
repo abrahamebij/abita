@@ -59,7 +59,7 @@ export default function PostJob() {
         description: `Tx hash: ${hash?.slice(0, 10)}... Redirecting to dashboard...`,
       });
       const timer = setTimeout(() => {
-        router.push("/");
+        router.push("/dashboard");
       }, 2500);
       return () => clearTimeout(timer);
     }
@@ -67,6 +67,7 @@ export default function PostJob() {
 
   useEffect(() => {
     if (error) {
+      console.error("Failed to post job:", error);
       toast.error("Failed to post job", {
         description: error.message,
       });

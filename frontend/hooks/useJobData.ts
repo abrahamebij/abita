@@ -25,22 +25,22 @@ export function useJobData(jobId: bigint) {
 
   // Map the returned Solidity tuple into a clean typed Javascript object
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tuple = data as any[] | undefined;
+  const tuple = data as any;
   const job = tuple ? {
-    client: tuple[0] as string,
-    freelancer: tuple[1] as string,
-    escrowAmount: tuple[2] as bigint,
-    requirements: tuple[3] as string,
-    deliveryNote: tuple[4] as string,
-    clientArgument: tuple[5] as string,
-    freelancerArgument: tuple[6] as string,
-    status: tuple[7] as number,
-    disputeCount: tuple[8] as number,
-    freelancerWinStreak: tuple[9] as number,
-    lastVerdictWinner: tuple[10] as string,
-    pendingRequestId: tuple[11] as bigint,
-    clientDisputeStaked: tuple[12] as boolean,
-    freelancerDisputeStaked: tuple[13] as boolean,
+    client: (Array.isArray(tuple) ? tuple[0] : tuple.client) as string,
+    freelancer: (Array.isArray(tuple) ? tuple[1] : tuple.freelancer) as string,
+    escrowAmount: (Array.isArray(tuple) ? tuple[2] : tuple.escrowAmount) as bigint,
+    requirements: (Array.isArray(tuple) ? tuple[3] : tuple.requirements) as string,
+    deliveryNote: (Array.isArray(tuple) ? tuple[4] : tuple.deliveryNote) as string,
+    clientArgument: (Array.isArray(tuple) ? tuple[5] : tuple.clientArgument) as string,
+    freelancerArgument: (Array.isArray(tuple) ? tuple[6] : tuple.freelancerArgument) as string,
+    status: (Array.isArray(tuple) ? tuple[7] : tuple.status) as number,
+    disputeCount: (Array.isArray(tuple) ? tuple[8] : tuple.disputeCount) as number,
+    freelancerWinStreak: (Array.isArray(tuple) ? tuple[9] : tuple.freelancerWinStreak) as number,
+    lastVerdictWinner: (Array.isArray(tuple) ? tuple[10] : tuple.lastVerdictWinner) as string,
+    pendingRequestId: (Array.isArray(tuple) ? tuple[11] : tuple.pendingRequestId) as bigint,
+    clientDisputeStaked: (Array.isArray(tuple) ? tuple[12] : tuple.clientDisputeStaked) as boolean,
+    freelancerDisputeStaked: (Array.isArray(tuple) ? tuple[13] : tuple.freelancerDisputeStaked) as boolean,
   } : undefined;
 
   return { job, refetch, isLoading, isError, error };

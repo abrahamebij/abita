@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["contracts/**/*.ts", "scripts/**/*.ts"]
+  "include": ["contracts/**/*.ts", "scripts/**/*.ts", "hardhat.config.ts"]
 }

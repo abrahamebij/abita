@@ -14,41 +14,7 @@ import { useCloseJob } from "@/hooks/useCloseJob";
 import { useRetryJob } from "@/hooks/useRetryJob";
 import ClientChoice from "@/components/ClientChoice";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const MOCK_JOBS: Record<string, any> = {
-  "1": {
-    client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    escrowAmount: 5000000000000000000n,
-    requirements: "Design a minimal blue logo. No gradients.",
-    deliveryNote: "Completed wordmark with solid blue palette. Figma link: figma.com/logo",
-    clientArgument: "Uses gradients, not the minimal style I specified.",
-    freelancerArgument: "Brief said blue palette which I followed exactly. Minimal is subjective.",
-    status: 3, // PendingClientChoice (Set to 3 so offline flow automatically runs the reveal and isClient options!)
-    disputeCount: 1,
-    freelancerWinStreak: 0,
-    lastVerdictWinner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // Client wins in mock
-    pendingRequestId: 123n,
-    clientDisputeStaked: true,
-    freelancerDisputeStaked: true,
-  },
-  "2": {
-    client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    freelancer: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-    escrowAmount: 12000000000000000000n,
-    requirements: "Write full-stack Next.js contract interface wrapper.",
-    deliveryNote: "",
-    clientArgument: "",
-    freelancerArgument: "",
-    status: 0,
-    disputeCount: 0,
-    freelancerWinStreak: 0,
-    lastVerdictWinner: "0x0000000000000000000000000000000000000000",
-    pendingRequestId: 0n,
-    clientDisputeStaked: false,
-    freelancerDisputeStaked: false,
-  }
-};
+
 
 export default function VerdictPage() {
   const params = useParams();
@@ -59,25 +25,39 @@ export default function VerdictPage() {
 
   const { job: contractJob, refetch, isLoading: dataLoading } = useJobData(jobId);
   
-  const job = React.useMemo(() => contractJob || (idStr ? MOCK_JOBS[idStr] : undefined) || {
-    client: address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    escrowAmount: 10000000000000000000n,
-    requirements: "Design a responsive interface mock layout.",
+  const job = React.useMemo(() => contractJob || {
+    client: "0x0000000000000000000000000000000000000000",
+    freelancer: "0x0000000000000000000000000000000000000000",
+    escrowAmount: 0n,
+    requirements: "",
     deliveryNote: "",
     clientArgument: "",
     freelancerArgument: "",
-    status: 3,
-    disputeCount: 1,
+    status: 0,
+    disputeCount: 0,
     freelancerWinStreak: 0,
-    lastVerdictWinner: address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    lastVerdictWinner: "0x0000000000000000000000000000000000000000",
     pendingRequestId: 0n,
     clientDisputeStaked: false,
     freelancerDisputeStaked: false,
-  }, [contractJob, idStr, address]);
+  }, [contractJob]);
 
-  const { closeJob, isPending: closePending, isSuccess: closeSuccess } = useCloseJob();
-  const { retryJob, isPending: retryPending, isSuccess: retrySuccess } = useRetryJob();
+  const { closeJob, isPending: closePending, isSuccess: closeSuccess, error: closeError } = useCloseJob();
+  const { retryJob, isPending: retryPending, isSuccess: retrySuccess, error: retryError } = useRetryJob();
+
+  useEffect(() => {
+    if (closeError) {
+      console.error("Close job from verdict failed:", closeError);
+      toast.error("Failed to close job", { description: closeError.message });
+    }
+  }, [closeError]);
+
+  useEffect(() => {
+    if (retryError) {
+      console.error("Retry job from verdict failed:", retryError);
+      toast.error("Failed to retry job", { description: retryError.message });
+    }
+  }, [retryError]);
 
   const [revealedLinesCount, setRevealedLinesCount] = useState(0);
   const [showWinner, setShowWinner] = useState(false);
@@ -163,8 +143,8 @@ export default function VerdictPage() {
     }
   }, [showWinner, job]);
 
-  const isMock = idStr && MOCK_JOBS[idStr];
-  const showSpinner = dataLoading && !contractJob && !isMock;
+  // Show full-page loader only if we are loading and don't have contract data yet
+  const showSpinner = dataLoading && !contractJob;
 
   if (showSpinner || !job) {
     return (

@@ -23,42 +23,6 @@ import DeliveryForm from "@/components/DeliveryForm";
 import DisputeFlow from "@/components/DisputeFlow";
 import DisputeArguments from "@/components/DisputeArguments";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const MOCK_JOBS: Record<string, any> = {
-  "1": {
-    client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    escrowAmount: 5000000000000000000n, // 5 STT
-    requirements: "Design a minimal blue logo. No gradients.",
-    deliveryNote: "Completed wordmark with solid blue palette. Figma link: figma.com/logo",
-    clientArgument: "Uses gradients, not the minimal style I specified.",
-    freelancerArgument: "Brief said blue palette which I followed exactly. Minimal is subjective.",
-    status: 2, // Disputed
-    disputeCount: 1,
-    freelancerWinStreak: 0,
-    lastVerdictWinner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    pendingRequestId: 123n,
-    clientDisputeStaked: true,
-    freelancerDisputeStaked: true,
-  },
-  "2": {
-    client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    freelancer: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-    escrowAmount: 12000000000000000000n, // 12 STT
-    requirements: "Write full-stack Next.js contract interface wrapper.",
-    deliveryNote: "",
-    clientArgument: "",
-    freelancerArgument: "",
-    status: 0, // Open
-    disputeCount: 0,
-    freelancerWinStreak: 0,
-    lastVerdictWinner: "0x0000000000000000000000000000000000000000",
-    pendingRequestId: 0n,
-    clientDisputeStaked: false,
-    freelancerDisputeStaked: false,
-  }
-};
-
 const STATUS_LABELS = ["Open", "Delivered", "Disputed", "Pending Client Choice", "Closed"];
 
 export default function JobDetail() {
@@ -72,12 +36,12 @@ export default function JobDetail() {
   // Polls automatically every 5s if status is Disputed (2)
   const { job: contractJob, refetch, isLoading: dataLoading } = useJobData(jobId);
 
-  // Fallback to mock job if contract read is offline/empty
-  const job = contractJob || (idStr ? MOCK_JOBS[idStr] : undefined) || {
-    client: address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    escrowAmount: 10000000000000000000n, // 10 STT
-    requirements: "Design a responsive interface mock layout.",
+  // Fallback to empty job if contract read is offline/empty
+  const job = contractJob || {
+    client: "0x0000000000000000000000000000000000000000",
+    freelancer: "0x0000000000000000000000000000000000000000",
+    escrowAmount: 0n,
+    requirements: "",
     deliveryNote: "",
     clientArgument: "",
     freelancerArgument: "",
@@ -91,13 +55,63 @@ export default function JobDetail() {
   };
 
   // Hook bindings
-  const { approveDelivery, isPending: approvePending, isSuccess: approveSuccess } = useApproveDelivery();
-  const { submitDelivery, isPending: deliverPending, isSuccess: deliverSuccess } = useSubmitDelivery();
-  const { raiseDispute, isPending: stakePending, isSuccess: stakeSuccess } = useRaiseDispute();
-  const { submitArgument, isPending: argPending, isSuccess: argSuccess } = useSubmitArgument();
-  const { judgeDispute, isPending: judgePending, isSuccess: judgeSuccess } = useJudgeDispute();
-  const { closeJob, isPending: closePending, isSuccess: closeSuccess } = useCloseJob();
-  const { retryJob, isPending: retryPending, isSuccess: retrySuccess } = useRetryJob();
+  const { approveDelivery, isPending: approvePending, isSuccess: approveSuccess, error: approveError } = useApproveDelivery();
+  const { submitDelivery, isPending: deliverPending, isSuccess: deliverSuccess, error: deliverError } = useSubmitDelivery();
+  const { raiseDispute, isPending: stakePending, isSuccess: stakeSuccess, error: stakeError } = useRaiseDispute();
+  const { submitArgument, isPending: argPending, isSuccess: argSuccess, error: argError } = useSubmitArgument();
+  const { judgeDispute, isPending: judgePending, isSuccess: judgeSuccess, error: judgeError } = useJudgeDispute();
+  const { closeJob, isPending: closePending, isSuccess: closeSuccess, error: closeError } = useCloseJob();
+  const { retryJob, isPending: retryPending, isSuccess: retrySuccess, error: retryError } = useRetryJob();
+
+  // Transaction error handling, console logging and toasting
+  useEffect(() => {
+    if (deliverError) {
+      console.error("Submit delivery failed:", deliverError);
+      toast.error("Failed to submit delivery", { description: deliverError.message });
+    }
+  }, [deliverError]);
+
+  useEffect(() => {
+    if (approveError) {
+      console.error("Approve delivery failed:", approveError);
+      toast.error("Failed to approve delivery", { description: approveError.message });
+    }
+  }, [approveError]);
+
+  useEffect(() => {
+    if (stakeError) {
+      console.error("Stake dispute fee failed:", stakeError);
+      toast.error("Failed to stake dispute fee", { description: stakeError.message });
+    }
+  }, [stakeError]);
+
+  useEffect(() => {
+    if (argError) {
+      console.error("Submit argument failed:", argError);
+      toast.error("Failed to submit argument", { description: argError.message });
+    }
+  }, [argError]);
+
+  useEffect(() => {
+    if (judgeError) {
+      console.error("AI adjudication request failed:", judgeError);
+      toast.error("Failed to request AI adjudication", { description: judgeError.message });
+    }
+  }, [judgeError]);
+
+  useEffect(() => {
+    if (closeError) {
+      console.error("Close job failed:", closeError);
+      toast.error("Failed to close and refund job", { description: closeError.message });
+    }
+  }, [closeError]);
+
+  useEffect(() => {
+    if (retryError) {
+      console.error("Retry job failed:", retryError);
+      toast.error("Failed to retry job", { description: retryError.message });
+    }
+  }, [retryError]);
 
   const userAddress = address?.toLowerCase();
   const isClient = userAddress === job.client.toLowerCase();
@@ -232,9 +246,8 @@ export default function JobDetail() {
     }
   }, [judgeSuccess, jobId, router]);
 
-  // Show full-page loader only if we are loading AND don't have cached/mock data
-  const isMock = idStr && MOCK_JOBS[idStr];
-  const showSpinner = dataLoading && !contractJob && !isMock;
+  // Show full-page loader only if we are loading and don't have contract data yet
+  const showSpinner = dataLoading && !contractJob;
 
   if (showSpinner || !job) {
     return (
