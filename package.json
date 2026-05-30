@@ -1,0 +1,23 @@
+{
+  "name": "abita-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Abita dispute resolution platform on Somnia Network",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.ts --network somnia",
+    "get-fee": "hardhat run scripts/get-fee.ts --network somnia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.7"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5"
+  }
+}
