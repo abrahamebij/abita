@@ -67,7 +67,7 @@ export default function ClientChoice({ onClose, onRetry, isPending }: ClientChoi
           </span>
           <span className="mt-2 text-xs text-muted">
             Keep the escrow locked and allow the freelancer to submit a new delivery. The freelancer must address the 
-            arbitrator's observations to claim payment.
+            arbitrator&apos;s observations to claim payment.
           </span>
         </motion.button>
       </div>

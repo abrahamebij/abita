@@ -51,13 +51,13 @@ export default function DisputeArguments({
       <div className="space-y-4">
         {clientArgument && (
           <div className="rounded-lg border border-border bg-background p-4">
-            <span className="text-[10px] uppercase text-muted font-semibold block">Client's Argument</span>
+            <span className="text-[10px] uppercase text-muted font-semibold block">Client&apos;s Argument</span>
             <p className="mt-1 text-sm text-foreground">{clientArgument}</p>
           </div>
         )}
         {freelancerArgument && (
           <div className="rounded-lg border border-border bg-background p-4">
-            <span className="text-[10px] uppercase text-muted font-semibold block">Freelancer's Argument</span>
+            <span className="text-[10px] uppercase text-muted font-semibold block">Freelancer&apos;s Argument</span>
             <p className="mt-1 text-sm text-foreground">{freelancerArgument}</p>
           </div>
         )}

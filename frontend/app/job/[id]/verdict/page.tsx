@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
-import { ArrowLeft, Brain, Gavel, Award, ShieldAlert, CheckCircle2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Brain, Award, ShieldAlert, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -14,11 +14,12 @@ import { useCloseJob } from "@/hooks/useCloseJob";
 import { useRetryJob } from "@/hooks/useRetryJob";
 import ClientChoice from "@/components/ClientChoice";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MOCK_JOBS: Record<string, any> = {
   "1": {
     client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    escrowAmount: 5000000000000000000n, // 5 STT
+    escrowAmount: 5000000000000000000n,
     requirements: "Design a minimal blue logo. No gradients.",
     deliveryNote: "Completed wordmark with solid blue palette. Figma link: figma.com/logo",
     clientArgument: "Uses gradients, not the minimal style I specified.",
@@ -34,12 +35,12 @@ const MOCK_JOBS: Record<string, any> = {
   "2": {
     client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     freelancer: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-    escrowAmount: 12000000000000000000n, // 12 STT
+    escrowAmount: 12000000000000000000n,
     requirements: "Write full-stack Next.js contract interface wrapper.",
     deliveryNote: "",
     clientArgument: "",
     freelancerArgument: "",
-    status: 0, // Open
+    status: 0,
     disputeCount: 0,
     freelancerWinStreak: 0,
     lastVerdictWinner: "0x0000000000000000000000000000000000000000",
@@ -51,43 +52,39 @@ const MOCK_JOBS: Record<string, any> = {
 
 export default function VerdictPage() {
   const params = useParams();
-  const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   
   const idStr = typeof params?.id === "string" ? params.id : "";
   const jobId = idStr ? BigInt(idStr) : 0n;
 
   const { job: contractJob, refetch, isLoading: dataLoading } = useJobData(jobId);
   
-  // Fallback to mock job if contract read is offline/empty
-  const job = contractJob || (idStr ? MOCK_JOBS[idStr] : undefined) || {
+  const job = React.useMemo(() => contractJob || (idStr ? MOCK_JOBS[idStr] : undefined) || {
     client: address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     freelancer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    escrowAmount: 10000000000000000000n, // 10 STT
+    escrowAmount: 10000000000000000000n,
     requirements: "Design a responsive interface mock layout.",
     deliveryNote: "",
     clientArgument: "",
     freelancerArgument: "",
-    status: 3, // PendingClientChoice
+    status: 3,
     disputeCount: 1,
     freelancerWinStreak: 0,
     lastVerdictWinner: address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     pendingRequestId: 0n,
     clientDisputeStaked: false,
     freelancerDisputeStaked: false,
-  };
+  }, [contractJob, idStr, address]);
 
   const { closeJob, isPending: closePending, isSuccess: closeSuccess } = useCloseJob();
   const { retryJob, isPending: retryPending, isSuccess: retrySuccess } = useRetryJob();
 
-  // Animation States
   const [revealedLinesCount, setRevealedLinesCount] = useState(0);
   const [showWinner, setShowWinner] = useState(false);
   const [escrowAmountCount, setEscrowAmountCount] = useState(0);
 
   const isClient = job && address ? address.toLowerCase() === job.client.toLowerCase() : false;
 
-  // Staggered Chain-of-Thought logs
   const chainOfThoughtLogs = [
     "Initializing Arbitrator Consensus Subcommittee...",
     "Retrieving job details, specifications, and evidence on-chain...",
@@ -101,20 +98,15 @@ export default function VerdictPage() {
     "Final Ruling: 100% Escrow allocated in favor of the CLIENT."
   ];
 
-  // Action states notifications via Sonner
   useEffect(() => {
     if (closeSuccess) {
-      toast.success("Job closed and settled!", {
-        description: "Escrow funds have been refunded to your wallet.",
-      });
+      toast.success("Job closed and settled!", { description: "Escrow refunded successfully." });
     }
   }, [closeSuccess]);
 
   useEffect(() => {
     if (retrySuccess) {
-      toast.success("Escrow reset successfully!", {
-        description: "Status is back to Open. Freelancer must re-deliver changes.",
-      });
+      toast.success("Escrow reset successfully!", { description: "Status is back to Open. Freelancer must re-deliver." });
     }
   }, [retrySuccess]);
 
@@ -134,38 +126,30 @@ export default function VerdictPage() {
     }
   }, [retryPending]);
 
-  // Sync refetches
   useEffect(() => {
-    if (closeSuccess || retrySuccess) {
-      refetch();
-    }
+    if (closeSuccess || retrySuccess) refetch();
   }, [closeSuccess, retrySuccess, refetch]);
 
-  // Handle staggered reveal animation of AI reasoning lines
   useEffect(() => {
-    if (job && job.status !== 2) { // 2 = Disputed (if it's resolved, show reveal)
+    if (job && job.status !== 2) {
       const timer = setInterval(() => {
         setRevealedLinesCount((prev) => {
-          if (prev < chainOfThoughtLogs.length) {
-            return prev + 1;
-          } else {
-            clearInterval(timer);
-            setShowWinner(true);
-            return prev;
-          }
+          if (prev < chainOfThoughtLogs.length) return prev + 1;
+          clearInterval(timer);
+          setShowWinner(true);
+          return prev;
         });
-      }, 1500); // 1.5 seconds per reasoning step for high dramatic effect
-
+      }, 1500);
       return () => clearInterval(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job]);
 
-  // STT payout count-up effect
   useEffect(() => {
     if (showWinner && job) {
       const targetAmount = parseFloat(formatEther(job.escrowAmount));
       let current = 0;
-      const step = targetAmount / 50; // 50 steps
+      const step = targetAmount / 50;
       const countTimer = setInterval(() => {
         current += step;
         if (current >= targetAmount) {
@@ -179,7 +163,6 @@ export default function VerdictPage() {
     }
   }, [showWinner, job]);
 
-  // Show full-page loader only if we are loading AND don't have cached/mock data
   const isMock = idStr && MOCK_JOBS[idStr];
   const showSpinner = dataLoading && !contractJob && !isMock;
 
@@ -191,28 +174,21 @@ export default function VerdictPage() {
     );
   }
 
-  // Active Adjudication Loader (AI is deliberating)
   const isDeliberating = job.status === 2;
 
   return (
     <div className="flex-grow flex flex-col min-h-screen bg-background text-foreground font-sans">
-      {/* Simple Header */}
       <header className="border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-20 flex items-center justify-between">
           <Link href={`/job/${jobId}`} className="flex items-center space-x-2 text-sm text-muted hover:text-primary transition-all duration-300">
             <ArrowLeft className="h-4 w-4" />
             <span>Escrow Details</span>
           </Link>
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            AI Verdict
-          </span>
+          <span className="text-xl font-bold tracking-tight text-foreground">AI Verdict</span>
         </div>
       </header>
 
-      {/* Main Container */}
       <main className="max-w-3xl mx-auto px-4 py-12 flex-1 w-full flex flex-col justify-center space-y-8">
-        
-        {/* Adjudication Loader State */}
         <AnimatePresence mode="wait">
           {isDeliberating ? (
             <motion.div
@@ -223,23 +199,17 @@ export default function VerdictPage() {
               className="rounded-2xl border border-border bg-card p-12 text-center space-y-6 shadow-sm"
             >
               <div className="relative mx-auto h-24 w-24">
-                {/* Visual pulsating glows (Electric Blue) */}
                 <span className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
                 <div className="relative flex h-24 w-24 rounded-full bg-primary/5 border border-primary/30 text-primary">
                   <Brain className="h-10 w-10 mx-auto my-auto animate-pulse" />
                 </div>
               </div>
-
               <div>
-                <h3 className="text-2xl font-bold text-foreground">
-                  AI Arbitrator Deliberating
-                </h3>
+                <h3 className="text-2xl font-bold text-foreground">AI Arbitrator Deliberating</h3>
                 <p className="mt-2 text-sm text-muted max-w-sm mx-auto">
-                  Somnia's decentralized validation subcommittee is executing the qualitative inference and checking consensus. This takes about 10-15 seconds.
+                  Somnia&apos;s decentralized validation subcommittee is executing the qualitative inference and checking consensus. This takes about 10-15 seconds.
                 </p>
               </div>
-
-              {/* Pulsating logs (Electric Blue) */}
               <div className="font-mono text-xs text-primary space-y-2 bg-background border border-border rounded-xl p-4 max-w-md mx-auto">
                 <div className="animate-pulse flex items-center justify-center space-x-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
@@ -248,28 +218,16 @@ export default function VerdictPage() {
               </div>
             </motion.div>
           ) : (
-            <motion.div
-              key="verdict-reveal"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-8"
-            >
-              {/* Blue Alert Banner if final round (dispute 5) */}
+            <motion.div key="verdict-reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
               {job.disputeCount === 5 && (
                 <div className="rounded-xl bg-primary-light border border-primary/20 p-4 flex items-center space-x-3 text-primary shadow-sm">
                   <ShieldAlert className="h-5 w-5 flex-shrink-0" />
-                  <span className="text-base font-bold">
-                    FINAL AND ABSOLUTE RULING — Appeal limits exceeded
-                  </span>
+                  <span className="text-base font-bold">FINAL AND ABSOLUTE RULING — Appeal limits exceeded</span>
                 </div>
               )}
 
-              {/* Staggered Chain of thought reveal block */}
               <div className="rounded-2xl border border-border bg-card p-8 md:p-12 space-y-4 shadow-sm">
-                <h3 className="text-xl font-bold text-foreground border-b border-border pb-4">
-                  Consensus Arbitrator Audit Log
-                </h3>
-
+                <h3 className="text-xl font-bold text-foreground border-b border-border pb-4">Consensus Arbitrator Audit Log</h3>
                 <div className="space-y-3 pt-4">
                   {chainOfThoughtLogs.slice(0, revealedLinesCount).map((log, index) => {
                     const isLast = index === revealedLinesCount - 1;
@@ -290,62 +248,41 @@ export default function VerdictPage() {
                 </div>
               </div>
 
-              {/* Blue pulsing Winner panel */}
               {showWinner && (
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
                   className="rounded-2xl border border-primary/30 bg-card p-8 md:p-12 text-center space-y-6 relative overflow-hidden shadow-md"
-                  style={{
-                    boxShadow: "0 0 40px rgba(37, 99, 235, 0.06)"
-                  }}
+                  style={{ boxShadow: "0 0 40px rgba(37, 99, 235, 0.06)" }}
                 >
-                  {/* Radiating pulse glow */}
-                  <motion.div 
-                    animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.2, 0.1] }}
-                    transition={{ repeat: Infinity, duration: 3 }}
-                    className="absolute inset-0 rounded-full bg-primary/5 blur-3xl -z-10" 
-                  />
-
+                  <motion.div animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.2, 0.1] }} transition={{ repeat: Infinity, duration: 3 }} className="absolute inset-0 rounded-full bg-primary/5 blur-3xl -z-10" />
                   <div className="flex h-16 w-16 rounded-full bg-primary/10 border border-primary/30 text-primary mx-auto">
                     <Award className="h-8 w-8 mx-auto my-auto animate-bounce" />
                   </div>
-
                   <div>
                     <span className="text-[10px] uppercase text-primary tracking-widest font-bold block">Winning Wallet Address</span>
                     <span className="mt-2 block font-mono text-lg md:text-xl text-foreground break-all max-w-md mx-auto border border-border rounded-xl px-4 py-2 bg-background">
                       {job.lastVerdictWinner}
                     </span>
                   </div>
-
-                  {/* STT Count-up releases amount */}
                   <div className="pt-6 border-t border-border max-w-sm mx-auto">
                     <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
                       {job.status === 4 ? "Escrow Settle Release" : "Staked dispute fee refund"}
                     </span>
-                    <span className="text-3xl font-bold text-foreground block mt-1">
-                      {escrowAmountCount.toFixed(2)} STT
-                    </span>
+                    <span className="text-3xl font-bold text-foreground block mt-1">{escrowAmountCount.toFixed(2)} STT</span>
                   </div>
                 </motion.div>
               )}
 
-              {/* Interactive ClientChoice settles overlay */}
               {showWinner && job.status === 3 && (
                 <div className="pt-6">
                   {isClient ? (
-                    <ClientChoice
-                      onClose={() => closeJob(jobId)}
-                      onRetry={() => retryJob(jobId)}
-                      isPending={closePending || retryPending}
-                    />
+                    <ClientChoice onClose={() => closeJob(jobId)} onRetry={() => retryJob(jobId)} isPending={closePending || retryPending} />
                   ) : (
                     <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-2 shadow-sm">
                       <CheckCircle2 className="h-8 w-8 text-primary mx-auto animate-pulse" />
-                      <h3 className="text-lg font-semibold text-foreground">
-                        Decision Awaiting Client
-                      </h3>
+                      <h3 className="text-lg font-semibold text-foreground">Decision Awaiting Client</h3>
                       <p className="text-xs text-muted max-w-xs mx-auto">
                         The client must now choose: Terminate & Close (refund escrow) or Request Corrections (retry).
                       </p>
@@ -360,6 +297,3 @@ export default function VerdictPage() {
     </div>
   );
 }
-
-// Import Loader2 helper definition
-import { Loader2 } from "lucide-react";

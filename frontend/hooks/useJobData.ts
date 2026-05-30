@@ -15,7 +15,7 @@ export function useJobData(jobId: bigint) {
     args: [jobId],
     query: {
       refetchInterval: (queryData) => {
-        // Abraham note: index 7 represents the JobStatus enum inside our Solidity Job struct
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const job = queryData?.state?.data as any;
         const status = job?.[7]; 
         return status === 2 ? 5000 : false;
@@ -24,6 +24,7 @@ export function useJobData(jobId: bigint) {
   });
 
   // Map the returned Solidity tuple into a clean typed Javascript object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tuple = data as any[] | undefined;
   const job = tuple ? {
     client: tuple[0] as string,

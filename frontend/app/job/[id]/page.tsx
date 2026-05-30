@@ -23,6 +23,7 @@ import DeliveryForm from "@/components/DeliveryForm";
 import DisputeFlow from "@/components/DisputeFlow";
 import DisputeArguments from "@/components/DisputeArguments";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MOCK_JOBS: Record<string, any> = {
   "1": {
     client: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
@@ -249,7 +250,7 @@ export default function JobDetail() {
       <header className="border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-20 flex items-center justify-between">
           <Link
-            href="/"
+            href="/dashboard"
             className="flex items-center space-x-2 text-sm text-muted hover:text-primary transition-all duration-300"
           >
             <ArrowLeft className="h-4 w-4" />

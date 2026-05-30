@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
-import { ArrowLeft, ShieldCheck, Wallet, Loader2 } from "lucide-react";
+import { ArrowLeft, Wallet, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -87,7 +87,7 @@ export default function PostJob() {
       {/* Simple Header */}
       <header className="border-b border-border bg-card backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2 text-sm text-muted hover:text-foreground transition-all duration-300">
+          <Link href="/dashboard" className="flex items-center space-x-2 text-sm text-muted hover:text-foreground transition-all duration-300">
             <ArrowLeft className="h-4 w-4" />
             <span>Dashboard</span>
           </Link>
