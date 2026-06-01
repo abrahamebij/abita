@@ -34,10 +34,8 @@ export default function ClientChoice({ onClose, onRetry, isPending }: ClientChoi
         {/* Option A: Close & Refund */}
         <motion.button
           disabled={isPending}
-          whileHover={{ scale: 1.02, borderColor: "#2563EB" }}
-          whileTap={{ scale: 0.98 }}
           onClick={onClose}
-          className="flex flex-col text-left rounded-xl border border-border bg-background p-6 transition-all duration-300 hover:shadow-md cursor-pointer disabled:opacity-50"
+          className="flex flex-col text-left rounded-xl border border-border bg-background p-6 transition-all duration-300 hover:border-primary hover:shadow-md cursor-pointer disabled:opacity-50"
         >
           <div className="flex h-8 w-8 items-center justify-between rounded-full bg-primary/10 text-primary">
             <span className="mx-auto font-mono text-sm font-bold">A</span>
@@ -54,10 +52,8 @@ export default function ClientChoice({ onClose, onRetry, isPending }: ClientChoi
         {/* Option B: Retry / Re-deliver */}
         <motion.button
           disabled={isPending}
-          whileHover={{ scale: 1.02, borderColor: "#2563EB" }}
-          whileTap={{ scale: 0.98 }}
           onClick={onRetry}
-          className="flex flex-col text-left rounded-xl border border-border bg-background p-6 transition-all duration-300 hover:shadow-md cursor-pointer disabled:opacity-50"
+          className="flex flex-col text-left rounded-xl border border-border bg-background p-6 transition-all duration-300 hover:border-primary hover:shadow-md cursor-pointer disabled:opacity-50"
         >
           <div className="flex h-8 w-8 items-center justify-between rounded-full bg-primary/10 text-primary">
             <span className="mx-auto font-mono text-sm font-bold">B</span>

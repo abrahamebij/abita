@@ -24,20 +24,24 @@ interface ClientJobCardProps {
 }
 
 export default function ClientJobCard({ job, statusInfo, index }: ClientJobCardProps) {
+  const isClosed = job.status === 4;
+
   return (
     <Link href={`/job/${job.id}`} className="block">
       <motion.div
         layout
-        whileHover={{ scale: 1.015, y: -2 }}
-        whileTap={{ scale: 0.985 }}
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3, delay: index * 0.04 }}
-        className="rounded-2xl border border-border bg-card p-6 hover:border-primary/45 transition-all duration-300 flex flex-col justify-between group hover:shadow-md shadow-sm relative overflow-hidden cursor-pointer h-full"
+        className={`rounded-2xl border border-border bg-card p-6 flex flex-col justify-between relative overflow-hidden h-full ${
+          isClosed
+            ? "shadow-sm opacity-75"
+            : "hover:border-primary/45 hover:shadow-md transition-all duration-300 cursor-pointer group"
+        }`}
       >
         {/* Decorative top border highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-primary/80" />
+        <div className={`absolute top-0 left-0 right-0 h-1 ${isClosed ? "bg-muted" : "bg-primary/80"}`} />
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -47,7 +51,9 @@ export default function ClientJobCard({ job, statusInfo, index }: ClientJobCardP
             </span>
           </div>
 
-          <h3 className="text-lg font-bold tracking-tight text-foreground group-hover:text-primary transition-colors duration-300 leading-snug line-clamp-3">
+          <h3 className={`text-lg font-bold tracking-tight text-foreground transition-colors duration-300 leading-snug line-clamp-3 ${
+            isClosed ? "" : "group-hover:text-primary"
+          }`}>
             {job.requirements}
           </h3>
 

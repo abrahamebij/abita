@@ -163,8 +163,6 @@ export default function LandingPage() {
                 </span>
                 <Link href="/dashboard">
                   <motion.div
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
                     className="flex items-center space-x-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-card hover:bg-primary-hover transition-all duration-300 shadow-sm cursor-pointer"
                   >
                     <span>Launch Portal</span>
@@ -213,8 +211,6 @@ export default function LandingPage() {
               {isConnected ? (
                 <Link href="/dashboard">
                   <motion.div
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
                     className="inline-flex items-center space-x-3 rounded-xl bg-primary px-8 py-4.5 text-base font-bold text-card hover:bg-primary-hover hover:shadow-lg transition-all duration-300 cursor-pointer"
                   >
                     <span>Enter Escrow Dashboard</span>
@@ -223,8 +219,6 @@ export default function LandingPage() {
                 </Link>
               ) : (
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
                   onClick={() => connect({ connector: injected() })}
                   className="inline-flex items-center space-x-3 rounded-xl bg-primary px-8 py-4.5 text-base font-bold text-card hover:bg-primary-hover hover:shadow-lg transition-all duration-300 cursor-pointer"
                 >
@@ -375,8 +369,6 @@ export default function LandingPage() {
               {isConnected ? (
                 <Link href="/dashboard">
                   <motion.div
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
                     className="inline-flex items-center space-x-2 rounded-xl bg-primary px-8 py-4.5 text-base font-bold text-card hover:bg-primary-hover hover:shadow-lg transition-all duration-300 cursor-pointer"
                   >
                     <span>Go to Dashboard</span>
@@ -385,8 +377,6 @@ export default function LandingPage() {
                 </Link>
               ) : (
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
                   onClick={() => connect({ connector: injected() })}
                   className="inline-flex items-center space-x-2 rounded-xl bg-primary px-8 py-4.5 text-base font-bold text-card hover:bg-primary-hover hover:shadow-lg transition-all duration-300 cursor-pointer"
                 >

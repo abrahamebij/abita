@@ -155,14 +155,23 @@ export default function Dashboard() {
       {/* Top Navigation Bar */}
       <header className="border-b border-border bg-card backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center hover:opacity-90 transition-opacity duration-300">
-            <img src="/logo_text.png" alt="Abita Logo" className="h-16 w-auto" />
+          <Link
+            href="/"
+            className="flex items-center hover:opacity-90 transition-opacity duration-300"
+          >
+            <img
+              src="/logo_text.png"
+              alt="Abita Logo"
+              className="h-16 w-auto"
+            />
           </Link>
 
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <div className="hidden md:flex flex-col text-right">
-                <span className="text-[10px] text-muted uppercase font-bold tracking-wider">Connected Wallet</span>
+                <span className="text-[10px] text-muted uppercase font-bold tracking-wider">
+                  Connected Wallet
+                </span>
                 <span className="font-mono text-sm text-foreground">
                   {address?.slice(0, 6)}...{address?.slice(-4)}
                 </span>
@@ -179,25 +188,24 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 w-full">
-        {/* Welcome & CTA section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-12 border-b border-border">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 flex-1 w-full">
+        {/* Welcome & CTA section - Centered Layout */}
+        <div className="flex flex-col items-center text-center gap-6 pb-12 border-b border-border">
+          <div className="space-y-3">
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
               Freelance Escrow Dashboard
             </h1>
-            <p className="mt-3 text-lg text-muted max-w-xl">
-              Escrow agreements protected by deterministic, consensus-verified AI arbitrators on Somnia Network.
+            <p className="text-base md:text-lg text-muted max-w-2xl mx-auto leading-relaxed">
+              Escrow agreements protected by deterministic, consensus-verified
+              AI arbitrators on Somnia Network.
             </p>
           </div>
 
-          <Link href="/post">
+          <Link href="/post" className="inline-block mt-2">
             <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="flex items-center justify-between space-x-2 rounded-xl bg-primary px-6 py-4 text-base font-bold text-card hover:bg-primary-hover transition-all duration-300 shadow-md cursor-pointer"
+              className="flex items-center justify-center space-x-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-card hover:bg-primary-hover transition-all duration-300 shadow-md cursor-pointer"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-5 w-5 shrink-0" />
               <span>Create New Escrow</span>
             </motion.div>
           </Link>
@@ -209,7 +217,9 @@ export default function Dashboard() {
               <Shield className="h-6 w-6 mx-auto my-auto" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">Secured Contracts</span>
+              <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">
+                Secured Contracts
+              </span>
               <span className="text-2xl font-bold text-foreground">
                 {liveJobs.length} Active
               </span>
@@ -220,7 +230,9 @@ export default function Dashboard() {
               <Gavel className="h-6 w-6 mx-auto my-auto" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">AI Arbitrations</span>
+              <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">
+                AI Arbitrations
+              </span>
               <span className="text-2xl font-bold text-foreground">
                 {arbitratedCount} Adjudicated
               </span>
@@ -231,7 +243,9 @@ export default function Dashboard() {
               <Award className="h-6 w-6 mx-auto my-auto" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">Total Platform Earnings</span>
+              <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">
+                Total Platform Earnings
+              </span>
               <span className="text-2xl font-bold text-foreground">
                 {formatEther(platformEarnings)} STT
               </span>
@@ -247,14 +261,18 @@ export default function Dashboard() {
               className={`font-semibold text-sm pb-4 relative transition-colors duration-300 cursor-pointer ${activeTab === "all" ? "text-primary" : "text-muted hover:text-foreground"}`}
             >
               All Agreements
-              {activeTab === "all" && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />}
+              {activeTab === "all" && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
+              )}
             </button>
             <button
               onClick={() => setActiveTab("active")}
               className={`font-semibold text-sm pb-4 relative transition-colors duration-300 cursor-pointer ${activeTab === "active" ? "text-primary" : "text-muted hover:text-foreground"}`}
             >
               Active Escrows
-              {activeTab === "active" && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />}
+              {activeTab === "active" && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
+              )}
             </button>
           </div>
           <span className="font-mono text-xs text-muted">
@@ -270,7 +288,8 @@ export default function Dashboard() {
               Escrows You Funded (Client Portal)
             </h2>
             <p className="text-xs text-muted mt-1">
-              Manage your freelance hires, review deliverables, release locked escrow funds, or file a dispute.
+              Manage your freelance hires, review deliverables, release locked
+              escrow funds, or file a dispute.
             </p>
           </div>
 
@@ -286,7 +305,8 @@ export default function Dashboard() {
                 </div>
               ) : (
                 clientJobs.map((job, idx) => {
-                  const statusInfo = STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
+                  const statusInfo =
+                    STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
                   return (
                     <ClientJobCard
                       key={job.id}
@@ -309,7 +329,8 @@ export default function Dashboard() {
               My Freelance Jobs (Freelancer Portal)
             </h2>
             <p className="text-xs text-muted mt-1">
-              Track your active assignments, deliver your work proofs, stake dispute claims, and claim your payouts.
+              Track your active assignments, deliver your work proofs, stake
+              dispute claims, and claim your payouts.
             </p>
           </div>
 
@@ -325,7 +346,8 @@ export default function Dashboard() {
                 </div>
               ) : (
                 freelancerJobs.map((job, idx) => {
-                  const statusInfo = STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
+                  const statusInfo =
+                    STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
                   return (
                     <FreelancerJobCard
                       key={job.id}

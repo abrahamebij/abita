@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
 
 interface LogoProps {
   className?: string;
@@ -17,9 +16,7 @@ interface LogoProps {
  */
 export default function Logo({ className = "", size = 40 }: LogoProps) {
   return (
-    <motion.div
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+    <div
       className={`relative select-none flex items-center justify-center ${className}`}
       style={{ width: size, height: size }}
     >
@@ -135,6 +132,6 @@ export default function Logo({ className = "", size = 40 }: LogoProps) {
           }}
         />
       </svg>
-    </motion.div>
+    </div>
   );
 }

@@ -184,8 +184,6 @@ export default function PostJob() {
               {/* Submit CTA */}
               <motion.button
                 disabled={isPending || isSuccess}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
                 type="submit"
                 className="mt-8 flex w-full items-center justify-center rounded-xl bg-primary py-4 text-base font-bold text-card hover:bg-primary-hover transition-all duration-300 disabled:opacity-50 cursor-pointer"
               >
