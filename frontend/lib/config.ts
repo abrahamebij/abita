@@ -32,4 +32,4 @@ export const config = createConfig({
 });
 
 // Contract deployment address of AbiCore.sol (Abraham: replace with deployed address!)
-export const ABICORE_CONTRACT_ADDRESS = "0xDE91188F155d64890c13c19fEf4F6B1Bc3F2a861"; 
+export const ABICORE_CONTRACT_ADDRESS = "0xea62A8a3017CDE1810C2899a0F20e103E4af7250";
