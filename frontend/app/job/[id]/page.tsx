@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
@@ -22,6 +22,12 @@ import ClientChoice from "@/components/ClientChoice";
 import DeliveryForm from "@/components/DeliveryForm";
 import DisputeFlow from "@/components/DisputeFlow";
 import DisputeArguments from "@/components/DisputeArguments";
+
+interface ArgumentHistoryItem {
+  sender: "client" | "freelancer";
+  text: string;
+  round: number;
+}
 
 const STATUS_LABELS = ["Open", "Delivered", "Disputed", "Pending Client Choice", "Closed"];
 
@@ -246,6 +252,46 @@ export default function JobDetail() {
     }
   }, [judgeSuccess, jobId, router]);
 
+  const [argumentHistory, setArgumentHistory] = useState<ArgumentHistoryItem[]>([]);
+
+  // Synchronize and persist past dispute round arguments in localStorage
+  useEffect(() => {
+    if (!jobId || !job.client || job.client === "0x0000000000000000000000000000000000000000") return;
+    
+    const cacheKey = `abita_job_${jobId.toString()}_history`;
+    const cached = localStorage.getItem(cacheKey);
+    const history: ArgumentHistoryItem[] = cached ? JSON.parse(cached) : [];
+
+    const currentRound = job.disputeCount || 1;
+    let updated = false;
+
+    if (job.clientArgument && job.clientArgument.trim() !== "") {
+      const exists = history.some(
+        (h) => h.sender === "client" && h.text === job.clientArgument && h.round === currentRound
+      );
+      if (!exists) {
+        history.push({ sender: "client", text: job.clientArgument, round: currentRound });
+        updated = true;
+      }
+    }
+
+    if (job.freelancerArgument && job.freelancerArgument.trim() !== "") {
+      const exists = history.some(
+        (h) => h.sender === "freelancer" && h.text === job.freelancerArgument && h.round === currentRound
+      );
+      if (!exists) {
+        history.push({ sender: "freelancer", text: job.freelancerArgument, round: currentRound });
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      localStorage.setItem(cacheKey, JSON.stringify(history));
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setArgumentHistory(history);
+  }, [job.clientArgument, job.freelancerArgument, jobId, job.disputeCount, job.client]);
+
   // Show full-page loader only if we are loading and don't have contract data yet
   const showSpinner = dataLoading && !contractJob;
 
@@ -372,19 +418,19 @@ export default function JobDetail() {
               stakePending={stakePending}
             />
 
-            {/* 4. Disputed State - Submit Arguments */}
-            {job.status === 2 && (
-              <DisputeArguments
-                clientArgument={job.clientArgument}
-                freelancerArgument={job.freelancerArgument}
-                isClient={isClient}
-                isFreelancer={isFreelancer}
-                onSubmitArgument={(arg) => submitArgument(jobId, arg)}
-                onJudgeDispute={() => judgeDispute(jobId)}
-                argPending={argPending}
-                judgePending={judgePending}
-              />
-            )}
+            {/* 4. Dispute Testimony & Chat History Timeline */}
+            <DisputeArguments
+              clientArgument={job.clientArgument}
+              freelancerArgument={job.freelancerArgument}
+              isClient={isClient}
+              isFreelancer={isFreelancer}
+              onSubmitArgument={(arg) => submitArgument(jobId, arg)}
+              onJudgeDispute={() => judgeDispute(jobId)}
+              argPending={argPending}
+              judgePending={judgePending}
+              history={argumentHistory}
+              status={job.status}
+            />
 
             {/* 5. PendingClientChoice State - Option Slide-Ins */}
             {job.status === 3 && (
