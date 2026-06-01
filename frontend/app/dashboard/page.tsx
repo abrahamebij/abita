@@ -4,11 +4,13 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount, useDisconnect, useReadContract } from "wagmi";
 import Link from "next/link";
-import { Shield, Plus, ArrowRight, Gavel, Award } from "lucide-react";
+import { Shield, Plus, Gavel, Award } from "lucide-react";
 import { formatEther } from "viem";
 import { ABICORE_CONTRACT_ADDRESS } from "@/lib/config";
 import { ABICORE_ABI } from "@/lib/abi";
 import MarketplaceTeaser from "@/components/MarketplaceTeaser";
+import ClientJobCard from "@/components/ClientJobCard";
+import FreelancerJobCard from "@/components/FreelancerJobCard";
 
 // JobStatus labels and styling (Only blue accents and neutral grey)
 const STATUS_DETAILS = [
@@ -18,7 +20,6 @@ const STATUS_DETAILS = [
   { label: "Awaiting Client Choice", color: "text-primary bg-primary-light border-primary/20" },
   { label: "Closed", color: "text-muted bg-background border-border" },
 ];
-
 
 interface DashboardJob {
   id: number;
@@ -34,8 +35,6 @@ interface DashboardJob {
 export default function Dashboard() {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
-  
-
 
   // Read total jobs from contract
   const { data: totalJobs } = useReadContract({
@@ -44,7 +43,7 @@ export default function Dashboard() {
     functionName: "getTotalJobs",
   });
 
-  const [activeTab, setActiveTab] = useState<"all" | "active" | "closed">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "active">("all");
   const [liveJobs, setLiveJobs] = useState<DashboardJob[]>([]);
   const [isLoadingLive, setIsLoadingLive] = useState(false);
 
@@ -140,6 +139,13 @@ export default function Dashboard() {
     }
     return true; // "all"
   });
+
+  const clientJobs = filteredJobs.filter(
+    (job) => address && job.client.toLowerCase() === address.toLowerCase()
+  );
+  const freelancerJobs = filteredJobs.filter(
+    (job) => address && job.freelancer.toLowerCase() === address.toLowerCase()
+  );
 
   const arbitratedCount = liveJobs.filter(job => job.disputeCount > 0).length;
   const platformEarnings = BigInt(arbitratedCount) * 2000000000000000000n; // 2 STT per arbitrated job
@@ -256,75 +262,83 @@ export default function Dashboard() {
           </span>
         </div>
 
-        {/* Feed cards render using stagger entry */}
-        <motion.div 
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8"
-        >
-          <AnimatePresence mode="popLayout">
-             {isLoadingLive && liveJobs.length === 0 ? (
-               <div className="col-span-full py-8 text-center text-sm text-muted animate-pulse">
-                 Syncing live escrow contracts on Somnia Network...
-               </div>
-             ) : filteredJobs.length === 0 ? (
-               <div className="col-span-full py-16 text-center text-sm text-muted border border-dashed border-border rounded-2xl bg-card shadow-sm">
-                 No active escrow agreements found for your connected wallet address.
-               </div>
-             ) : filteredJobs.map((job, idx) => {
-               const statusInfo = STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
-              return (
-                <motion.div
-                  key={job.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4, delay: idx * 0.08 }}
-                  className="rounded-2xl border border-border bg-card p-6 hover:border-primary/30 transition-all duration-300 flex flex-col justify-between group hover:shadow-md shadow-sm"
-                >
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs text-muted">Job ID: #{job.id}</span>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusInfo.color}`}>
-                        {statusInfo.label}
-                      </span>
-                    </div>
+        {/* 1. Client Workspace Portal (Jobs Funded) */}
+        <div className="mt-12 space-y-6">
+          <div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center">
+              <Shield className="h-5 w-5 text-primary mr-2" />
+              Escrows You Funded (Client Portal)
+            </h2>
+            <p className="text-xs text-muted mt-1">
+              Manage your freelance hires, review deliverables, release locked escrow funds, or file a dispute.
+            </p>
+          </div>
 
-                    <h3 className="mt-4 text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors duration-300">
-                      {job.requirements.slice(0, 50)}...
-                    </h3>
+          <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <AnimatePresence mode="popLayout">
+              {isLoadingLive && liveJobs.length === 0 ? (
+                <div className="col-span-full py-8 text-center text-xs text-muted animate-pulse">
+                  Syncing live escrow contracts on Somnia Network...
+                </div>
+              ) : clientJobs.length === 0 ? (
+                <div className="col-span-full py-10 text-center text-xs text-muted border border-dashed border-border rounded-2xl bg-card shadow-sm">
+                  You have not posted or funded any escrow agreements yet.
+                </div>
+              ) : (
+                clientJobs.map((job, idx) => {
+                  const statusInfo = STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
+                  return (
+                    <ClientJobCard
+                      key={job.id}
+                      job={job}
+                      statusInfo={statusInfo}
+                      index={idx}
+                    />
+                  );
+                })
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
 
-                    <p className="mt-2 text-sm text-muted line-clamp-2">
-                      {job.requirements}
-                    </p>
+        {/* 2. Freelancer Workspace Portal (My Assigned Jobs) */}
+        <div className="mt-16 space-y-6">
+          <div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center">
+              <Award className="h-5 w-5 text-primary mr-2" />
+              My Freelance Jobs (Freelancer Portal)
+            </h2>
+            <p className="text-xs text-muted mt-1">
+              Track your active assignments, deliver your work proofs, stake dispute claims, and claim your payouts.
+            </p>
+          </div>
 
-                    <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-border">
-                      <div>
-                        <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">Escrow locked</span>
-                        <span className="text-lg font-bold text-foreground">
-                          {formatEther(job.escrowAmount)} STT
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">Disputes</span>
-                        <span className="font-mono text-sm text-foreground">
-                          {job.disputeCount} of 5
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Link href={`/job/${job.id}`} className="mt-6 w-full">
-                    <div className="flex items-center justify-between w-full rounded-lg border border-border bg-background hover:bg-primary/5 px-4 py-3 text-sm font-semibold text-foreground hover:text-primary hover:border-primary/30 transition-all duration-300 cursor-pointer">
-                      <span>View Details</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
+          <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <AnimatePresence mode="popLayout">
+              {isLoadingLive && liveJobs.length === 0 ? (
+                <div className="col-span-full py-8 text-center text-xs text-muted animate-pulse">
+                  Syncing live escrow contracts on Somnia Network...
+                </div>
+              ) : freelancerJobs.length === 0 ? (
+                <div className="col-span-full py-10 text-center text-xs text-muted border border-dashed border-border rounded-2xl bg-card shadow-sm">
+                  You are not currently hired for any freelance assignments.
+                </div>
+              ) : (
+                freelancerJobs.map((job, idx) => {
+                  const statusInfo = STATUS_DETAILS[job.status] || STATUS_DETAILS[0];
+                  return (
+                    <FreelancerJobCard
+                      key={job.id}
+                      job={job}
+                      statusInfo={statusInfo}
+                      index={idx}
+                    />
+                  );
+                })
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
 
         {/* Coming Soon Marketplace section */}
         <div className="mt-24">
