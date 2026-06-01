@@ -377,13 +377,26 @@ export default function JobDetail() {
             </div>
           </div>
 
-          <div>
-            <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
-              Job Requirements
-            </span>
-            <p className="mt-2 text-sm text-foreground leading-relaxed bg-background border border-border rounded-lg p-4 font-sans whitespace-pre-wrap">
-              {job.requirements}
-            </p>
+          <div className="space-y-6">
+            <div>
+              <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
+                Job Requirements
+              </span>
+              <p className="mt-2 text-sm text-foreground leading-relaxed bg-background border border-border rounded-lg p-4 font-sans whitespace-pre-wrap">
+                {job.requirements}
+              </p>
+            </div>
+
+            {job.deliveryNote && job.deliveryNote.trim() !== "" && (
+              <div className="pt-6 border-t border-border">
+                <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
+                  Freelancer&apos;s Delivery Response / Proof
+                </span>
+                <p className="mt-2 text-sm text-foreground leading-relaxed bg-background border border-border rounded-lg p-4 font-sans whitespace-pre-wrap">
+                  {job.deliveryNote}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
