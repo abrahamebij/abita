@@ -69,14 +69,14 @@ export default function DisputeFlow({
             </motion.button>
           </div>
 
-          {/* Initial Dispute Stake Card */}
+          {/* Initial Dispute Deposit Card */}
           <div className="rounded-2xl border border-border bg-card p-8 flex flex-col justify-between shadow-sm">
             <div>
               <h3 className="text-xl font-bold text-foreground">
                 File a Dispute
               </h3>
               <p className="mt-2 text-xs text-muted">
-                Disagree with the work? Stake a 1 STT dispute fee. The freelancer must also stake 1 STT to activate AI adjudication.
+                Disagree with the work? Deposit a 1 STT dispute fee. The freelancer must also deposit 1 STT to activate AI adjudication.
               </p>
             </div>
             <motion.button
@@ -85,13 +85,13 @@ export default function DisputeFlow({
               className="mt-6 flex w-full items-center justify-center rounded-xl border border-border bg-background hover:border-primary hover:text-primary py-3.5 text-sm font-bold text-foreground transition-all duration-300 disabled:opacity-50 cursor-pointer shadow-sm"
             >
               {stakePending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Gavel className="h-4 w-4 mr-2" />}
-              <span>{clientDisputeStaked ? "Staked — Waiting for Freelancer" : "Stake 1 STT to Dispute"}</span>
+              <span>{clientDisputeStaked ? "Deposited — Waiting for Freelancer" : "Deposit 1 STT to Dispute"}</span>
             </motion.button>
           </div>
         </motion.div>
       )}
 
-      {/* Double Staking Pipeline Status Panel */}
+      {/* Double Depositing Pipeline Status Panel */}
       {showStakingPipeline && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -102,18 +102,18 @@ export default function DisputeFlow({
             Dispute Pipeline Active
           </h3>
           <p className="text-xs text-muted">
-            One party has initiated a dispute and locked 1 STT. The other party must now also stake 1 STT to proceed to AI arbitration.
+            One party has initiated a dispute and locked 1 STT. The other party must now also deposit 1 STT to proceed to AI arbitration.
           </p>
           <div className="grid grid-cols-2 gap-4 text-center py-4">
             <div className={`rounded-xl border p-4 ${clientDisputeStaked ? "border-primary/20 bg-primary-light text-primary font-semibold" : "border-border bg-background text-muted"}`}>
-              Client Staked: {clientDisputeStaked ? "Yes" : "Awaiting"}
+              Client Deposited: {clientDisputeStaked ? "Yes" : "Awaiting"}
             </div>
             <div className={`rounded-xl border p-4 ${freelancerDisputeStaked ? "border-primary/20 bg-primary-light text-primary font-semibold" : "border-border bg-background text-muted"}`}>
-              Freelancer Staked: {freelancerDisputeStaked ? "Yes" : "Awaiting"}
+              Freelancer Deposited: {freelancerDisputeStaked ? "Yes" : "Awaiting"}
             </div>
           </div>
 
-          {/* Trigger second party's staking write option (if wallet matches) */}
+          {/* Trigger second party's depositing write option (if wallet matches) */}
           {isFreelancer && !freelancerDisputeStaked && (
             <motion.button
               disabled={stakePending}
@@ -121,7 +121,7 @@ export default function DisputeFlow({
               className="flex w-full items-center justify-center rounded-xl bg-primary py-3.5 text-sm font-bold text-card hover:bg-primary-hover transition-all duration-300 disabled:opacity-50 cursor-pointer shadow-sm"
             >
               {stakePending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Gavel className="h-4 w-4 mr-2" />}
-              <span>Stake 1 STT & Enter Adjudication</span>
+              <span>Deposit 1 STT & Enter Adjudication</span>
             </motion.button>
           )}
         </motion.div>

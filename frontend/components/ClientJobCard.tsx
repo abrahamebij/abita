@@ -71,7 +71,7 @@ export default function ClientJobCard({ job, statusInfo, index }: ClientJobCardP
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
             <div>
-              <span className="text-[10px] uppercase text-muted tracking-wider block font-bold">Staked Escrow</span>
+              <span className="text-[10px] uppercase text-muted tracking-wider block font-bold">Locked Escrow</span>
               <span className="text-base font-extrabold text-foreground">
                 {formatEther(job.escrowAmount)} STT
               </span>

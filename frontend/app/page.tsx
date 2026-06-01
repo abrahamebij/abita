@@ -287,9 +287,9 @@ export default function LandingPage() {
               <div className="flex h-12 w-12 rounded-xl bg-primary/10 text-primary items-center justify-center font-bold text-lg font-mono">
                 02
               </div>
-              <h3 className="text-xl font-bold text-foreground">Symmetrical Staking</h3>
+              <h3 className="text-xl font-bold text-foreground">Symmetrical Deposit</h3>
               <p className="text-sm text-muted leading-relaxed">
-                If a qualitative dispute occurs, both parties stake a flat 1.0 STT fee and submit their arguments directly to the contract.
+                If a qualitative dispute occurs, both parties deposit a flat 1.0 STT fee and submit their arguments directly to the contract.
               </p>
             </div>
 

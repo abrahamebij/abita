@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, useWaitForTransactionReceipt } from "wagmi";
 import { formatEther } from "viem";
 import { ArrowLeft, Wallet, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -61,13 +61,22 @@ export default function JobDetail() {
   };
 
   // Hook bindings
-  const { approveDelivery, isPending: approvePending, isSuccess: approveSuccess, error: approveError } = useApproveDelivery();
-  const { submitDelivery, isPending: deliverPending, isSuccess: deliverSuccess, error: deliverError } = useSubmitDelivery();
-  const { raiseDispute, isPending: stakePending, isSuccess: stakeSuccess, error: stakeError } = useRaiseDispute();
-  const { submitArgument, isPending: argPending, isSuccess: argSuccess, error: argError } = useSubmitArgument();
-  const { judgeDispute, isPending: judgePending, isSuccess: judgeSuccess, error: judgeError } = useJudgeDispute();
-  const { closeJob, isPending: closePending, isSuccess: closeSuccess, error: closeError } = useCloseJob();
-  const { retryJob, isPending: retryPending, isSuccess: retrySuccess, error: retryError } = useRetryJob();
+  const { approveDelivery, isPending: approvePending, error: approveError, hash: approveHash } = useApproveDelivery();
+  const { submitDelivery, isPending: deliverPending, error: deliverError, hash: deliverHash } = useSubmitDelivery();
+  const { raiseDispute, isPending: stakePending, error: stakeError, hash: stakeHash } = useRaiseDispute();
+  const { submitArgument, isPending: argPending, error: argError, hash: argHash } = useSubmitArgument();
+  const { judgeDispute, isPending: judgePending, error: judgeError, hash: judgeHash } = useJudgeDispute();
+  const { closeJob, isPending: closePending, error: closeError, hash: closeHash } = useCloseJob();
+  const { retryJob, isPending: retryPending, error: retryError, hash: retryHash } = useRetryJob();
+
+  // Wagmi hooks to wait for actual blockchain mining confirmations
+  const { isLoading: approveConfirming, isSuccess: approveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
+  const { isLoading: deliverConfirming, isSuccess: deliverConfirmed } = useWaitForTransactionReceipt({ hash: deliverHash });
+  const { isLoading: stakeConfirming, isSuccess: stakeConfirmed } = useWaitForTransactionReceipt({ hash: stakeHash });
+  const { isLoading: argConfirming, isSuccess: argConfirmed } = useWaitForTransactionReceipt({ hash: argHash });
+  const { isLoading: judgeConfirming, isSuccess: judgeConfirmed } = useWaitForTransactionReceipt({ hash: judgeHash });
+  const { isLoading: closeConfirming, isSuccess: closeConfirmed } = useWaitForTransactionReceipt({ hash: closeHash });
+  const { isLoading: retryConfirming, isSuccess: retryConfirmed } = useWaitForTransactionReceipt({ hash: retryHash });
 
   // Transaction error handling, console logging and toasting
   useEffect(() => {
@@ -86,8 +95,8 @@ export default function JobDetail() {
 
   useEffect(() => {
     if (stakeError) {
-      console.error("Stake dispute fee failed:", stakeError);
-      toast.error("Failed to stake dispute fee", { description: stakeError.message });
+      console.error("Deposit dispute fee failed:", stakeError);
+      toast.error("Failed to deposit dispute fee", { description: stakeError.message });
     }
   }, [stakeError]);
 
@@ -125,132 +134,139 @@ export default function JobDetail() {
 
   // Individual transaction outcome notifications via Sonner
   useEffect(() => {
-    if (deliverSuccess) {
+    if (deliverConfirmed) {
       toast.success("Delivery submitted successfully!", {
         description: "The client will now review your work.",
       });
     }
-  }, [deliverSuccess]);
+  }, [deliverConfirmed]);
 
   useEffect(() => {
-    if (approveSuccess) {
+    if (approveConfirmed) {
       toast.success("Delivery approved successfully!", {
         description: "Locked escrow payment has been released to the freelancer.",
       });
     }
-  }, [approveSuccess]);
+  }, [approveConfirmed]);
 
   useEffect(() => {
-    if (stakeSuccess) {
-      toast.success("Dispute fee staked successfully!", {
+    if (stakeConfirmed) {
+      toast.success("Dispute fee deposited successfully!", {
         description: "1.0 STT locked. Wait for the dispute pipeline to initialize.",
       });
     }
-  }, [stakeSuccess]);
+  }, [stakeConfirmed]);
 
   useEffect(() => {
-    if (argSuccess) {
+    if (argConfirmed) {
       toast.success("Argument recorded on-chain!", {
         description:
           "Your testimony is submitted to the AI consensus arbitrator.",
       });
     }
-  }, [argSuccess]);
+  }, [argConfirmed]);
 
   useEffect(() => {
-    if (judgeSuccess) {
+    if (judgeConfirmed) {
       toast.success("AI consensus request launched!", {
         description: "Redirecting to verdict deliberation subcommittee portal...",
       });
     }
-  }, [judgeSuccess]);
+  }, [judgeConfirmed]);
 
   useEffect(() => {
-    if (closeSuccess) {
+    if (closeConfirmed) {
       toast.success("Job closed and settled!", {
         description: "Escrow funds have been refunded to your wallet.",
       });
     }
-  }, [closeSuccess]);
+  }, [closeConfirmed]);
 
   useEffect(() => {
-    if (retrySuccess) {
+    if (retryConfirmed) {
       toast.success("Escrow reset successfully!", {
         description: "Status is back to Open. Freelancer must re-deliver changes.",
       });
     }
-  }, [retrySuccess]);
+  }, [retryConfirmed]);
 
   // Loading notifications via Sonner
   useEffect(() => {
-    if (deliverPending) {
+    const active = deliverPending || deliverConfirming;
+    if (active) {
       toast.loading("Submitting completed work note on-chain...", { id: "deliver" });
     } else {
       toast.dismiss("deliver");
     }
-  }, [deliverPending]);
+  }, [deliverPending, deliverConfirming]);
 
   useEffect(() => {
-    if (approvePending) {
+    const active = approvePending || approveConfirming;
+    if (active) {
       toast.loading("Approving deliverable and releasing funds...", { id: "approve" });
     } else {
       toast.dismiss("approve");
     }
-  }, [approvePending]);
+  }, [approvePending, approveConfirming]);
 
   useEffect(() => {
-    if (stakePending) {
-      toast.loading("Staking 1.0 STT dispute fee...", { id: "stake" });
+    const active = stakePending || stakeConfirming;
+    if (active) {
+      toast.loading("Depositing 1.0 STT dispute fee on-chain...", { id: "stake" });
     } else {
       toast.dismiss("stake");
     }
-  }, [stakePending]);
+  }, [stakePending, stakeConfirming]);
 
   useEffect(() => {
-    if (argPending) {
+    const active = argPending || argConfirming;
+    if (active) {
       toast.loading("Recording dispute argument on-chain...", { id: "argument" });
     } else {
       toast.dismiss("argument");
     }
-  }, [argPending]);
+  }, [argPending, argConfirming]);
 
   useEffect(() => {
-    if (judgePending) {
+    const active = judgePending || judgeConfirming;
+    if (active) {
       toast.loading("Querying validator signatures and launching consensus...", { id: "judge" });
     } else {
       toast.dismiss("judge");
     }
-  }, [judgePending]);
+  }, [judgePending, judgeConfirming]);
 
   useEffect(() => {
-    if (closePending) {
+    const active = closePending || closeConfirming;
+    if (active) {
       toast.loading("Terminating job and executing refund...", { id: "close" });
     } else {
       toast.dismiss("close");
     }
-  }, [closePending]);
+  }, [closePending, closeConfirming]);
 
   useEffect(() => {
-    if (retryPending) {
+    const active = retryPending || retryConfirming;
+    if (active) {
       toast.loading("Resetting escrow for re-delivery...", { id: "retry" });
     } else {
       toast.dismiss("retry");
     }
-  }, [retryPending]);
+  }, [retryPending, retryConfirming]);
 
-  // Refetch when transaction states succeed to sync local client immediately
+  // Refetch when transaction states are confirmed on-chain
   useEffect(() => {
-    if (approveSuccess || deliverSuccess || stakeSuccess || argSuccess || closeSuccess || retrySuccess) {
+    if (approveConfirmed || deliverConfirmed || stakeConfirmed || argConfirmed || closeConfirmed || retryConfirmed) {
       refetch();
     }
-  }, [approveSuccess, deliverSuccess, stakeSuccess, argSuccess, closeSuccess, retrySuccess, refetch]);
+  }, [approveConfirmed, deliverConfirmed, stakeConfirmed, argConfirmed, closeConfirmed, retryConfirmed, refetch]);
 
-  // Navigate to verdict page once judgment is triggered successfully
+  // Navigate to verdict page once judgment is confirmed successfully
   useEffect(() => {
-    if (judgeSuccess) {
+    if (judgeConfirmed) {
       router.push(`/job/${jobId}/verdict`);
     }
-  }, [judgeSuccess, jobId, router]);
+  }, [judgeConfirmed, jobId, router]);
 
   const [argumentHistory, setArgumentHistory] = useState<ArgumentHistoryItem[]>([]);
 

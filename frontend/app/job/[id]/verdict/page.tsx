@@ -256,7 +256,7 @@ export default function VerdictPage() {
                   </div>
                   <div className="pt-6 border-t border-border max-w-sm mx-auto">
                     <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
-                      {job.status === 4 ? "Escrow Settle Release" : "Staked dispute fee refund"}
+                      {job.status === 4 ? "Escrow Settle Release" : "Deposited dispute fee refund"}
                     </span>
                     <span className="text-3xl font-bold text-foreground block mt-1">{escrowAmountCount.toFixed(2)} STT</span>
                   </div>
