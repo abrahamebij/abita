@@ -32,9 +32,9 @@ contract MockSomniaAgents is ISomniaAgents {
     }
 
     /**
-     * @notice Simulates getRequestFee returning 0 for local tests.
+     * @notice Simulates getRequestDeposit returning 0 for local tests.
      */
-    function getRequestFee(uint256, uint8) external pure override returns (uint256) {
+    function getRequestDeposit() external pure override returns (uint256) {
         return 0; 
     }
 

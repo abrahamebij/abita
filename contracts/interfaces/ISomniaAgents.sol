@@ -9,11 +9,9 @@ pragma solidity ^0.8.24;
 interface ISomniaAgents {
     /**
      * @notice Query the required fee in native tokens (STT) for a specific agent execution.
-     * @param agentId The unique identifier of the AI agent.
-     * @param agentVersion The version of the agent to invoke.
      * @return The fee required in wei.
      */
-    function getRequestFee(uint256 agentId, uint8 agentVersion) external view returns (uint256);
+    function getRequestDeposit() external view returns (uint256);
 
     /**
      * @notice Create a non-blocking request to an AI agent.

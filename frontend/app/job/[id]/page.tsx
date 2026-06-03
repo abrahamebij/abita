@@ -319,6 +319,11 @@ export default function JobDetail() {
     );
   }
 
+  // If a dispute has been initiated or is active, the active round is disputeCount + 1, capped at 5
+  const activeDisputeRound = (job.clientDisputeStaked || job.freelancerDisputeStaked || job.status === 2)
+    ? Math.min(job.disputeCount + 1, 5)
+    : job.disputeCount;
+
   return (
     <div className="flex-grow flex flex-col min-h-screen bg-background text-foreground font-sans">
       {/* Navigation Header */}
@@ -343,7 +348,7 @@ export default function JobDetail() {
       {/* Main Grid */}
       <main className="max-w-4xl mx-auto px-4 py-12 flex-1 w-full space-y-8">
         {/* Dispute Escalation Bar Tracker */}
-        <DisputeProgress currentDispute={job.disputeCount} />
+        <DisputeProgress currentDispute={activeDisputeRound} />
 
         <div className="rounded-2xl border border-border bg-card p-8 space-y-6 shadow-sm">
           <div className="flex items-center justify-between">
@@ -459,6 +464,9 @@ export default function JobDetail() {
               judgePending={judgePending}
               history={argumentHistory}
               status={job.status}
+              pendingRequestId={job.pendingRequestId}
+              jobId={jobId}
+              disputeCount={job.disputeCount}
             />
 
             {/* 5. PendingClientChoice State - Option Slide-Ins */}

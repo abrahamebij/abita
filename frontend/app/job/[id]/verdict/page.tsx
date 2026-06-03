@@ -62,8 +62,45 @@ export default function VerdictPage() {
   const [revealedLinesCount, setRevealedLinesCount] = useState(0);
   const [showWinner, setShowWinner] = useState(false);
   const [escrowAmountCount, setEscrowAmountCount] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
 
   const isClient = job && address ? address.toLowerCase() === job.client.toLowerCase() : false;
+
+  const deliberationLogs = React.useMemo(() => [
+    { prefix: "[SYSTEM]", label: "Connecting to Somnia Agent platform at 0x037Bb9C7... [OK]" },
+    { prefix: "[TX]", label: `AI Adjudication Request received under Request ID #${job?.pendingRequestId?.toString() || "3"}...` },
+    { prefix: "[CONSENSUS]", label: "Assembling decentralized validator subcommittee... (min 5 nodes required)" },
+    { prefix: "[CONSENSUS]", label: "Subcommittee formed. Active nodes: [Node#11, Node#18, Node#23, Node#31, Node#44]" },
+    { prefix: "[BLOCKCHAIN]", label: "Node#11 querying contract AbiCore at 0xF0A04E4a..." },
+    { prefix: "[BLOCKCHAIN]", label: "Querying Escrow constraints: jobRequirements, deliveryNote..." },
+    { prefix: "[BLOCKCHAIN]", label: "Querying testimonies: clientArgument, freelancerArgument..." },
+    { prefix: "[DECRYPT]", label: "Reconstructing evidence package inside secure enclave..." },
+    { prefix: "[LLM-INFERENCE]", label: "Invoking Qwen3-30B consensus-verified LLM Agent..." },
+    { prefix: "[LLM-INFERENCE]", label: "Parsing Brief parameters: clientWallet, freelancerWallet..." },
+    { prefix: "[LLM-INFERENCE]", label: `Analyzing requirements: "${job?.requirements ? (job.requirements.length > 50 ? job.requirements.substring(0, 47) + "..." : job.requirements) : "Design a minimal blue logo. No gradients."}"` },
+    { prefix: "[LLM-INFERENCE]", label: "Evaluating freelancer response and proof details..." },
+    { prefix: "[LLM-INFERENCE]", label: "Running qualitative assessment and comparing arguments..." },
+    { prefix: "[LLM-INFERENCE]", label: "Inference finalized. Output generated." },
+    { prefix: "[CONSENSUS]", label: "Nodes submitting cryptographic outcome signatures..." },
+    { prefix: "[CONSENSUS]", label: "Analyzing consensus status... (4/5 nodes match winner hex address)" },
+    { prefix: "[CONSENSUS]", label: "Consensus threshold reached (80.0% majority approval achieved)." },
+    { prefix: "[CONSENSUS]", label: "Generating audit receipt at agents.testnet.somnia.network..." },
+    { prefix: "[CALLBACK]", label: "Preparing callback payload with consensus signatures..." },
+    { prefix: "[CALLBACK]", label: "Dispatching callback handleResponse() transaction..." },
+    { prefix: "[BLOCKCHAIN]", label: "Waiting for blockchain block confirmation..." }
+  ], [job]);
+
+  useEffect(() => {
+    if (job && job.status === 2) {
+      const stepTimer = setInterval(() => {
+        setActiveStep((prev) => {
+          if (prev < deliberationLogs.length - 1) return prev + 1;
+          return prev;
+        });
+      }, 1500);
+      return () => clearInterval(stepTimer);
+    }
+  }, [job, deliberationLogs.length]);
 
   const chainOfThoughtLogs = [
     "Initializing Arbitrator Consensus Subcommittee...",
@@ -198,11 +235,22 @@ export default function VerdictPage() {
                   Somnia&apos;s decentralized validation subcommittee is executing the qualitative inference and checking consensus. This takes about 10-15 seconds.
                 </p>
               </div>
-              <div className="font-mono text-xs text-primary space-y-2 bg-background border border-border rounded-xl p-4 max-w-md mx-auto">
-                <div className="animate-pulse flex items-center justify-center space-x-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
-                  <span>[Consensus] Gathering validator node signatures...</span>
-                </div>
+              <div className="font-mono text-left text-xs bg-[#0A0C14] border border-border rounded-xl p-6 max-w-lg w-full mx-auto space-y-2.5 shadow-inner h-[220px] overflow-y-auto scrollbar-thin">
+                {deliberationLogs.slice(0, activeStep + 1).map((log, idx) => {
+                  const isActive = idx === activeStep;
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`flex items-start space-x-2 ${isActive ? "text-primary font-semibold" : "text-muted"}`}
+                    >
+                      <span className="opacity-60">{log.prefix}</span>
+                      <span>{log.label}</span>
+                      {isActive && <span className="animate-pulse bg-primary h-3.5 w-1.5 inline-block align-middle" />}
+                    </motion.div>
+                  );
+                })}
               </div>
             </motion.div>
           ) : (

@@ -300,8 +300,8 @@ contract AbiCore {
             allowedValues
         );
 
-        // Fetch required platform invocation fee (version 3 of agent interface)
-        uint256 fee = platform.getRequestFee(LLM_AGENT_ID, 3);
+        // Fetch required platform invocation fee
+        uint256 fee = platform.getRequestDeposit();
 
         // Call the Somnia Platform with the required fee to create the request
         uint256 requestId = platform.createRequest{value: fee}(
