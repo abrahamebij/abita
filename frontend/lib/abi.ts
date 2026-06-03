@@ -46,7 +46,7 @@ export const ABICORE_ABI = [
   {
     name: "judgeDispute",
     type: "function",
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     inputs: [{ name: "jobId", type: "uint256" }],
     outputs: []
   },

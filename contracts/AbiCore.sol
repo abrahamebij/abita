@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 // Import OpenZeppelin utility library to convert addresses to hex strings
 import "@openzeppelin/contracts/utils/Strings.sol";
-// Import our custom Somnia Network Agents platform interface
+// Import our custom Somnia Network Agents platform interface (structs sourced from official docs)
 import "./interfaces/ISomniaAgents.sol";
 
 /**
@@ -18,8 +18,17 @@ contract AbiCore {
 
     // --- State Variables ---
 
-    // The unique ID of the Somnia consensus-verified LLM Inference Agent (Qwen3-30B model)
+    // The unique ID of the Somnia consensus-verified LLM Inference Agent.
+    // Plain-English: Get the real ID from https://agents.testnet.somnia.network and set it here.
     uint256 public constant LLM_AGENT_ID = 12847293847561029384;
+
+    // Default subcommittee size used by createRequest() — the platform default is 3.
+    uint256 public constant SUBCOMMITTEE_SIZE = 3;
+
+    // Per-agent execution price for LLM Inference agents (from Somnia Gas Fees docs).
+    // Plain-English: Runners won't pick up the request unless perAgentBudget >= this value.
+    // 0.07 STT per agent × 3 agents = 0.21 STT execution reward, plus the 0.03 STT floor = 0.24 STT total.
+    uint256 public constant LLM_COST_PER_AGENT = 0.07 ether;
 
     // The address of the Somnia platform requester contract
     ISomniaAgents public immutable platform;
@@ -300,11 +309,15 @@ contract AbiCore {
             allowedValues
         );
 
-        // Fetch required platform invocation fee
-        uint256 fee = platform.getRequestDeposit();
+        // Fetch the operations-reserve floor (0.03 STT for default subcommittee of 3).
+        // IMPORTANT: This is NOT enough on its own — runners require perAgentBudget >= 0.07 STT.
+        // We add LLM_COST_PER_AGENT × SUBCOMMITTEE_SIZE on top so runners actually execute.
+        // Source: https://docs.somnia.network/agents/invoking-agents/gas-fees
+        uint256 floor = platform.getRequestDeposit();
+        uint256 totalDeposit = floor + (LLM_COST_PER_AGENT * SUBCOMMITTEE_SIZE);
 
-        // Call the Somnia Platform with the required fee to create the request
-        uint256 requestId = platform.createRequest{value: fee}(
+        // Call the Somnia Platform with the full required deposit
+        uint256 requestId = platform.createRequest{value: totalDeposit}(
             LLM_AGENT_ID,
             address(this),
             this.handleResponse.selector,
@@ -319,15 +332,22 @@ contract AbiCore {
     }
 
     /**
-     * @notice Asynchronous callback executed by the Somnia platform once the AI Agent and validators finish inference.
+     * @notice Asynchronous callback executed by the Somnia platform once validators reach consensus.
      * @param requestId The ID of the completed request.
-     * @param responses The string array response containing the parsed verdict.
+     * @param responses Array of Response structs from each validator — decode responses[0].result as (string) for LLM.
+     * @param status Overall consensus status (Success=2, Failed=3, TimedOut=4).
+     *
+     * Plain-English explanation for Abraham:
+     * The platform calls this function on our contract. The signature must match EXACTLY what
+     * the platform expects — types, order, and parameter count. Previously this used string[] which
+     * is wrong; the real platform sends Response[] (a struct array). We decode result bytes as string.
+     * Source: https://docs.somnia.network/agents/invoking-agents/from-solidity
      */
     function handleResponse(
         uint256 requestId,
-        string[] calldata responses,
-        uint8 /* status */,
-        bytes calldata /* details */
+        Response[] calldata responses,
+        ResponseStatus status,
+        AgentRequest calldata /* details */
     ) external {
         // Ensure ONLY the Somnia Platform can trigger this callback to prevent cheating
         require(msg.sender == address(platform), "Only the Somnia platform can invoke callback");
@@ -336,79 +356,65 @@ contract AbiCore {
         require(jobId > 0, "No job associated with request ID");
 
         Job storage job = jobs[jobId];
-        // Ensure this callback matches the pending request
         require(job.pendingRequestId == requestId, "Callback request ID mismatch");
 
         // Reset pending request status
         job.pendingRequestId = 0;
 
-        // Ensure there is at least one result in the response
-        require(responses.length > 0, "Empty response from agent");
+        // Only process successful consensus; ignore Failed/TimedOut
+        if (status != ResponseStatus.Success || responses.length == 0) {
+            // Reset status back to Disputed so parties can re-trigger if they want
+            // (or let the job sit — pendingRequestId is now 0 so judgeDispute can be retried)
+            return;
+        }
 
-        string memory winnerStr = responses[0];
+        // The LLM agent returns a string (the winning wallet address in hex).
+        // responses[0].result is ABI-encoded bytes — decode it as a string.
+        string memory winnerStr = abi.decode(responses[0].result, (string));
         string memory clientHex = job.client.toHexString();
         string memory freelancerHex = job.freelancer.toHexString();
 
         address winner;
-        // Compare lowering hex formats to establish the winner address
         if (keccak256(abi.encodePacked(winnerStr)) == keccak256(abi.encodePacked(clientHex))) {
             winner = job.client;
         } else if (keccak256(abi.encodePacked(winnerStr)) == keccak256(abi.encodePacked(freelancerHex))) {
             winner = job.freelancer;
         } else {
-            // Safe fallback if formatting goes wrong, defaults to freelancer to avoid locking funds forever
+            // Safe fallback: if the address string doesn't match either party exactly,
+            // default to freelancer to avoid permanently locking funds.
             winner = job.freelancer;
         }
 
         job.lastVerdictWinner = winner;
 
-        // Plain-English explanation for Abraham:
-        // The business model: Abita collects a 2 STT dispute fee (1 STT staked from each party).
-        // This is transferred immediately to our project's treasury address.
+        // Abita collects 2 STT (1 STT staked by each party) as the dispute adjudication fee.
         (bool feeSuccess, ) = treasury.call{value: 2 ether}("");
         require(feeSuccess, "Dispute fee payment to treasury failed");
 
-        // Apply Dispute Adjudication logic based on AGENTS.md rules
+        // Apply verdict logic per AGENTS.md rules
         if (job.disputeCount == 5) {
-            // Dispute 5: Final and absolute verdict.
-            // Escape payout settles here and the job closes forever. No retry.
             job.status = JobStatus.Closed;
-            
             (bool success, ) = payable(winner).call{value: job.escrowAmount}("");
             require(success, "Final escrow distribution failed");
-
             emit FinalVerdict(jobId, winner, job.escrowAmount);
         } else {
-            // Disputes 1 to 4
             if (winner == job.client) {
-                // Client wins: resets freelancer streak to 0. Client must choose Close or Retry
                 job.freelancerWinStreak = 0;
                 job.status = JobStatus.PendingClientChoice;
-                
                 emit VerdictForClient(jobId, requestId);
             } else {
-                // Freelancer wins: increment win streak
                 job.freelancerWinStreak++;
-
                 if (job.freelancerWinStreak >= 2) {
-                    // Freelancer won twice consecutively! Escrow pays out instantly and job closes.
                     job.status = JobStatus.Closed;
-                    
                     (bool success, ) = payable(job.freelancer).call{value: job.escrowAmount}("");
                     require(success, "Escrow payout to freelancer failed");
-
                     emit FinalVerdict(jobId, job.freelancer, job.escrowAmount);
                 } else {
-                    // Freelancer win count = 1: Client gets exactly one more chance.
-                    // The job resets to Open so the client can raise another dispute (incrementing disputeCount).
                     job.status = JobStatus.Open;
-
-                    // Reset dispute stakes and arguments so they can submit fresh claims for the next round
                     job.clientDisputeStaked = false;
                     job.freelancerDisputeStaked = false;
                     job.clientArgument = "";
                     job.freelancerArgument = "";
-
                     emit VerdictForFreelancer(jobId, requestId);
                 }
             }

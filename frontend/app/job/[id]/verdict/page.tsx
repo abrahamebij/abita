@@ -1,11 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
+import { ABICORE_CONTRACT_ADDRESS } from "@/lib/config";
 import { formatEther } from "viem";
-import { ArrowLeft, Brain, Award, ShieldAlert, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Brain,
+  Award,
+  ShieldAlert,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -19,31 +28,50 @@ import ClientChoice from "@/components/ClientChoice";
 export default function VerdictPage() {
   const params = useParams();
   const { address } = useAccount();
-  
+  const publicClient = usePublicClient();
+
   const idStr = typeof params?.id === "string" ? params.id : "";
   const jobId = idStr ? BigInt(idStr) : 0n;
 
-  const { job: contractJob, refetch, isLoading: dataLoading } = useJobData(jobId);
-  
-  const job = React.useMemo(() => contractJob || {
-    client: "0x0000000000000000000000000000000000000000",
-    freelancer: "0x0000000000000000000000000000000000000000",
-    escrowAmount: 0n,
-    requirements: "",
-    deliveryNote: "",
-    clientArgument: "",
-    freelancerArgument: "",
-    status: 0,
-    disputeCount: 0,
-    freelancerWinStreak: 0,
-    lastVerdictWinner: "0x0000000000000000000000000000000000000000",
-    pendingRequestId: 0n,
-    clientDisputeStaked: false,
-    freelancerDisputeStaked: false,
-  }, [contractJob]);
+  const {
+    job: contractJob,
+    refetch,
+    isLoading: dataLoading,
+  } = useJobData(jobId);
 
-  const { closeJob, isPending: closePending, isSuccess: closeSuccess, error: closeError } = useCloseJob();
-  const { retryJob, isPending: retryPending, isSuccess: retrySuccess, error: retryError } = useRetryJob();
+  const job = useMemo(
+    () =>
+      contractJob || {
+        client: "0x0000000000000000000000000000000000000000",
+        freelancer: "0x0000000000000000000000000000000000000000",
+        escrowAmount: 0n,
+        requirements: "",
+        deliveryNote: "",
+        clientArgument: "",
+        freelancerArgument: "",
+        status: 0,
+        disputeCount: 0,
+        freelancerWinStreak: 0,
+        lastVerdictWinner: "0x0000000000000000000000000000000000000000",
+        pendingRequestId: 0n,
+        clientDisputeStaked: false,
+        freelancerDisputeStaked: false,
+      },
+    [contractJob],
+  );
+
+  const {
+    closeJob,
+    isPending: closePending,
+    isSuccess: closeSuccess,
+    error: closeError,
+  } = useCloseJob();
+  const {
+    retryJob,
+    isPending: retryPending,
+    isSuccess: retrySuccess,
+    error: retryError,
+  } = useRetryJob();
 
   useEffect(() => {
     if (closeError) {
@@ -59,77 +87,135 @@ export default function VerdictPage() {
     }
   }, [retryError]);
 
-  const [revealedLinesCount, setRevealedLinesCount] = useState(0);
   const [showWinner, setShowWinner] = useState(false);
   const [escrowAmountCount, setEscrowAmountCount] = useState(0);
-  const [activeStep, setActiveStep] = useState(0);
 
-  const isClient = job && address ? address.toLowerCase() === job.client.toLowerCase() : false;
+  const isClient =
+    job && address ? address.toLowerCase() === job.client.toLowerCase() : false;
 
-  const deliberationLogs = React.useMemo(() => [
-    { prefix: "[SYSTEM]", label: "Connecting to Somnia Agent platform at 0x037Bb9C7... [OK]" },
-    { prefix: "[TX]", label: `AI Adjudication Request received under Request ID #${job?.pendingRequestId?.toString() || "3"}...` },
-    { prefix: "[CONSENSUS]", label: "Assembling decentralized validator subcommittee... (min 5 nodes required)" },
-    { prefix: "[CONSENSUS]", label: "Subcommittee formed. Active nodes: [Node#11, Node#18, Node#23, Node#31, Node#44]" },
-    { prefix: "[BLOCKCHAIN]", label: "Node#11 querying contract AbiCore at 0xF0A04E4a..." },
-    { prefix: "[BLOCKCHAIN]", label: "Querying Escrow constraints: jobRequirements, deliveryNote..." },
-    { prefix: "[BLOCKCHAIN]", label: "Querying testimonies: clientArgument, freelancerArgument..." },
-    { prefix: "[DECRYPT]", label: "Reconstructing evidence package inside secure enclave..." },
-    { prefix: "[LLM-INFERENCE]", label: "Invoking Qwen3-30B consensus-verified LLM Agent..." },
-    { prefix: "[LLM-INFERENCE]", label: "Parsing Brief parameters: clientWallet, freelancerWallet..." },
-    { prefix: "[LLM-INFERENCE]", label: `Analyzing requirements: "${job?.requirements ? (job.requirements.length > 50 ? job.requirements.substring(0, 47) + "..." : job.requirements) : "Design a minimal blue logo. No gradients."}"` },
-    { prefix: "[LLM-INFERENCE]", label: "Evaluating freelancer response and proof details..." },
-    { prefix: "[LLM-INFERENCE]", label: "Running qualitative assessment and comparing arguments..." },
-    { prefix: "[LLM-INFERENCE]", label: "Inference finalized. Output generated." },
-    { prefix: "[CONSENSUS]", label: "Nodes submitting cryptographic outcome signatures..." },
-    { prefix: "[CONSENSUS]", label: "Analyzing consensus status... (4/5 nodes match winner hex address)" },
-    { prefix: "[CONSENSUS]", label: "Consensus threshold reached (80.0% majority approval achieved)." },
-    { prefix: "[CONSENSUS]", label: "Generating audit receipt at agents.testnet.somnia.network..." },
-    { prefix: "[CALLBACK]", label: "Preparing callback payload with consensus signatures..." },
-    { prefix: "[CALLBACK]", label: "Dispatching callback handleResponse() transaction..." },
-    { prefix: "[BLOCKCHAIN]", label: "Waiting for blockchain block confirmation..." }
-  ], [job]);
+  // --- Debug logging — visible in browser DevTools console ---
+  useEffect(() => {
+    if (!job) return;
+    const statusNames = [
+      "Open",
+      "Delivered",
+      "Disputed",
+      "PendingClientChoice",
+      "Closed",
+    ];
+    console.log(
+      `[Abita] Job #${jobId} polled — status: ${statusNames[job.status] ?? job.status} (${job.status})`,
+      {
+        disputeCount: job.disputeCount,
+        pendingRequestId: job.pendingRequestId?.toString(),
+        lastVerdictWinner: job.lastVerdictWinner,
+        escrowAmount: job.escrowAmount?.toString(),
+        freelancerWinStreak: job.freelancerWinStreak,
+      },
+    );
+  }, [job?.status, job?.pendingRequestId, job?.lastVerdictWinner, jobId]);
+
+  // The on-chain audit trail lives at agents.testnet.somnia.network.
+  // We use the pendingRequestId stored on the job to deep-link to the receipt.
+  // Note: pendingRequestId is reset to 0 after the callback fires — so we track
+  // the last known requestId in state to keep the link alive after verdict.
+  const [auditRequestId, setAuditRequestId] = useState<string | null>(null);
+  console.log("auditRequestId: ", auditRequestId);
+
+  // Initial load from localStorage
+  useEffect(() => {
+    if (jobId) {
+      const cachedId = localStorage.getItem(
+        `abita_job_${jobId.toString()}_last_request_id`,
+      );
+      if (cachedId) {
+        setAuditRequestId(cachedId);
+      }
+    }
+  }, [jobId]);
+
+  // Query historical on-chain events as a fallback to ensure we ALWAYS retrieve
+  // the correct request ID, even on clean devices or when localStorage is empty.
+  useEffect(() => {
+    if (!jobId || !publicClient) return;
+
+    const fetchLogs = async () => {
+      try {
+        const currentBlock = await publicClient.getBlockNumber();
+        const fromBlock = currentBlock > 990n ? currentBlock - 990n : 0n;
+
+        const logs = await publicClient.getLogs({
+          address: ABICORE_CONTRACT_ADDRESS as `0x${string}`,
+          event: {
+            type: "event",
+            name: "JudgmentRequested",
+            inputs: [
+              { indexed: true, name: "jobId", type: "uint256" },
+              { indexed: false, name: "requestId", type: "uint256" },
+              { indexed: false, name: "disputeCount", type: "uint8" }
+            ]
+          },
+          args: {
+            jobId: jobId
+          },
+          fromBlock
+        });
+
+        if (logs.length > 0) {
+          const latestLog = logs[logs.length - 1];
+          const reqId = latestLog.args.requestId;
+          if (reqId) {
+            const reqIdStr = reqId.toString();
+            console.log(`[Abita] Captured requestId from on-chain event logs: #${reqIdStr}`);
+            setAuditRequestId(reqIdStr);
+            localStorage.setItem(`abita_job_${jobId.toString()}_last_request_id`, reqIdStr);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to query on-chain JudgmentRequested logs:", err);
+      }
+    };
+
+    fetchLogs();
+  }, [jobId, publicClient]);
 
   useEffect(() => {
-    if (job && job.status === 2) {
-      const stepTimer = setInterval(() => {
-        setActiveStep((prev) => {
-          if (prev < deliberationLogs.length - 1) return prev + 1;
-          return prev;
-        });
-      }, 1500);
-      return () => clearInterval(stepTimer);
+    if (job?.pendingRequestId && job.pendingRequestId !== 0n) {
+      const id = job.pendingRequestId.toString();
+      console.log(
+        `[Abita] Somnia request ID captured: #${id} — audit URL: https://agents.testnet.somnia.network/receipts/${id}`,
+      );
+      setAuditRequestId(id);
+      if (jobId) {
+        localStorage.setItem(
+          `abita_job_${jobId.toString()}_last_request_id`,
+          id,
+        );
+      }
     }
-  }, [job, deliberationLogs.length]);
-
-  const chainOfThoughtLogs = [
-    "Initializing Arbitrator Consensus Subcommittee...",
-    "Retrieving job details, specifications, and evidence on-chain...",
-    "Analyzing Client Requirements: 'Design a minimal blue logo. No gradients.'",
-    "Analyzing Freelancer Delivery: 'Completed wordmark with solid blue palette.'",
-    "Evaluating Client Argument: 'The freelancer used gradients instead of solid colors.'",
-    "Evaluating Freelancer Argument: 'Brief requested blue palette. Minimal is subjective.'",
-    "Arbitrator Finding: Freelancer's Figma link reveals gradient blends on background elements.",
-    "Rule Check: Minimal design briefs requesting no gradients take absolute precedence over subjective palette options.",
-    "Consensus Reached: Freelancer failed to satisfy the explicit constraint of the requirements brief.",
-    "Final Ruling: 100% Escrow allocated in favor of the CLIENT."
-  ];
+  }, [job?.pendingRequestId, jobId]);
 
   useEffect(() => {
     if (closeSuccess) {
-      toast.success("Job closed and settled!", { description: "Escrow refunded successfully." });
+      toast.success("Job closed and settled!", {
+        description: "Escrow refunded successfully.",
+      });
     }
   }, [closeSuccess]);
 
   useEffect(() => {
     if (retrySuccess) {
-      toast.success("Escrow reset successfully!", { description: "Status is back to Open. Freelancer must re-deliver." });
+      toast.success("Escrow reset successfully!", {
+        description: "Status is back to Open. Freelancer must re-deliver.",
+      });
     }
   }, [retrySuccess]);
 
   useEffect(() => {
     if (closePending) {
-      toast.loading("Terminating job and executing refund...", { id: "close-verdict" });
+      toast.loading("Terminating job and executing refund...", {
+        id: "close-verdict",
+      });
     } else {
       toast.dismiss("close-verdict");
     }
@@ -137,7 +223,9 @@ export default function VerdictPage() {
 
   useEffect(() => {
     if (retryPending) {
-      toast.loading("Resetting escrow for re-delivery...", { id: "retry-verdict" });
+      toast.loading("Resetting escrow for re-delivery...", {
+        id: "retry-verdict",
+      });
     } else {
       toast.dismiss("retry-verdict");
     }
@@ -148,22 +236,22 @@ export default function VerdictPage() {
   }, [closeSuccess, retrySuccess, refetch]);
 
   useEffect(() => {
+    // Once status leaves Disputed (2), the Somnia callback has fired — show verdict
     if (job && job.status !== 2) {
-      const timer = setInterval(() => {
-        setRevealedLinesCount((prev) => {
-          if (prev < chainOfThoughtLogs.length) return prev + 1;
-          clearInterval(timer);
-          setShowWinner(true);
-          return prev;
-        });
-      }, 1500);
-      return () => clearInterval(timer);
+      if (job.status !== 0) {
+        // status 0 is the default empty job before data loads — don't treat it as a verdict
+        console.log(
+          `[Abita] Verdict arrived — winner: ${job.lastVerdictWinner}, status now: ${job.status}`,
+        );
+        setShowWinner(true);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job]);
+  }, [job?.status, job?.lastVerdictWinner]);
 
   useEffect(() => {
-    if (showWinner && job) {
+    // Only count up the escrow amount when status=4 (Closed) — meaning it actually moved.
+    // status=3 (PendingClientChoice) means the client won but hasn't chosen yet — escrow is still locked.
+    if (showWinner && job && job.status === 4) {
       const targetAmount = parseFloat(formatEther(job.escrowAmount));
       let current = 0;
       const step = targetAmount / 50;
@@ -197,11 +285,20 @@ export default function VerdictPage() {
     <div className="flex-grow flex flex-col min-h-screen bg-background text-foreground font-sans">
       <header className="border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center hover:opacity-90 transition-opacity duration-300">
-            <img src="/logo_text.png" alt="Abita Logo" className="h-16 w-auto" />
+          <Link
+            href="/"
+            className="flex items-center hover:opacity-90 transition-opacity duration-300"
+          >
+            <img
+              src="/logo_text.png"
+              alt="Abita Logo"
+              className="h-16 w-auto"
+            />
           </Link>
           <div className="flex items-center space-x-4">
-            <span className="text-sm font-mono text-muted hidden sm:inline">Verdict ID #{jobId.toString()}</span>
+            <span className="text-sm font-mono text-muted hidden sm:inline">
+              Verdict ID #{jobId.toString()}
+            </span>
             <Link
               href={`/job/${jobId}`}
               className="flex items-center space-x-2 text-sm text-muted hover:text-primary transition-all duration-300 border border-border bg-card px-3 py-1.5 rounded-lg shadow-sm"
@@ -221,67 +318,119 @@ export default function VerdictPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="rounded-2xl border border-border bg-card p-12 text-center space-y-6 shadow-sm"
+              className="rounded-2xl border border-border bg-card p-12 text-center space-y-8 shadow-sm"
             >
+              {/* Pulsing brain icon */}
               <div className="relative mx-auto h-24 w-24">
                 <span className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
                 <div className="relative flex h-24 w-24 rounded-full bg-primary/5 border border-primary/30 text-primary">
                   <Brain className="h-10 w-10 mx-auto my-auto animate-pulse" />
                 </div>
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-foreground">AI Arbitrator Deliberating</h3>
-                <p className="mt-2 text-sm text-muted max-w-sm mx-auto">
-                  Somnia&apos;s decentralized validation subcommittee is executing the qualitative inference and checking consensus. This takes about 10-15 seconds.
+
+              {/* Status copy */}
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-foreground">
+                  AI Arbitrator Deliberating
+                </h3>
+                <p className="text-sm text-muted max-w-xs mx-auto">
+                  The Somnia validator subcommittee is running inference.
+                  Polling every 5 seconds for the callback.
                 </p>
               </div>
-              <div className="font-mono text-left text-xs bg-[#0A0C14] border border-border rounded-xl p-6 max-w-lg w-full mx-auto space-y-2.5 shadow-inner h-[220px] overflow-y-auto scrollbar-thin">
-                {deliberationLogs.slice(0, activeStep + 1).map((log, idx) => {
-                  const isActive = idx === activeStep;
-                  return (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, x: -5 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`flex items-start space-x-2 ${isActive ? "text-primary font-semibold" : "text-muted"}`}
-                    >
-                      <span className="opacity-60">{log.prefix}</span>
-                      <span>{log.label}</span>
-                      {isActive && <span className="animate-pulse bg-primary h-3.5 w-1.5 inline-block align-middle" />}
-                    </motion.div>
-                  );
-                })}
+
+              {/* Real data only — no mock logs */}
+              <div className="space-y-3 text-left max-w-sm mx-auto">
+                <div className="flex items-center justify-between text-xs border border-border rounded-lg px-4 py-3 bg-background">
+                  <span className="text-muted font-mono">Job ID</span>
+                  <span className="text-foreground font-mono font-semibold">
+                    #{jobId.toString()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs border border-border rounded-lg px-4 py-3 bg-background">
+                  <span className="text-muted font-mono">Dispute Round</span>
+                  <span className="text-foreground font-mono font-semibold">
+                    {job.disputeCount === 0
+                      ? "Pending"
+                      : `${job.disputeCount} of 5`}
+                  </span>
+                </div>
+                {auditRequestId && (
+                  <div className="flex items-center justify-between text-xs border border-primary/20 rounded-lg px-4 py-3 bg-primary/5">
+                    <span className="text-primary/70 font-mono">
+                      Request ID
+                    </span>
+                    <span className="text-primary font-mono font-semibold">
+                      #{auditRequestId}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Live waiting indicator */}
+              <div className="flex items-center justify-center space-x-1.5 pt-2">
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    className="h-1.5 w-1.5 rounded-full bg-primary"
+                    animate={{ opacity: [0.2, 1, 0.2] }}
+                    transition={{
+                      duration: 1.2,
+                      repeat: Infinity,
+                      delay: i * 0.2,
+                    }}
+                  />
+                ))}
+                <span className="text-xs text-muted ml-2">
+                  Waiting for on-chain callback
+                </span>
               </div>
             </motion.div>
           ) : (
-            <motion.div key="verdict-reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+            <motion.div
+              key="verdict-reveal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-8"
+            >
               {job.disputeCount === 5 && (
                 <div className="rounded-xl bg-primary-light border border-primary/20 p-4 flex items-center space-x-3 text-primary shadow-sm">
                   <ShieldAlert className="h-5 w-5 flex-shrink-0" />
-                  <span className="text-base font-bold">FINAL AND ABSOLUTE RULING — Appeal limits exceeded</span>
+                  <span className="text-base font-bold">
+                    FINAL AND ABSOLUTE RULING — Appeal limits exceeded
+                  </span>
                 </div>
               )}
 
               <div className="rounded-2xl border border-border bg-card p-8 md:p-12 space-y-4 shadow-sm">
-                <h3 className="text-xl font-bold text-foreground border-b border-border pb-4">Consensus Arbitrator Audit Log</h3>
-                <div className="space-y-3 pt-4">
-                  {chainOfThoughtLogs.slice(0, revealedLinesCount).map((log, index) => {
-                    const isLast = index === revealedLinesCount - 1;
-                    const isConclusion = index === chainOfThoughtLogs.length - 1;
-                    return (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className={`flex items-start space-x-3 font-mono text-xs ${isConclusion ? "text-primary bg-primary-light border border-primary/20 p-3 rounded-lg mt-6 font-semibold" : isLast ? "text-foreground" : "text-muted"}`}
-                      >
-                        <ChevronRight className={`h-4 w-4 mt-0.5 flex-shrink-0 ${isConclusion ? "text-primary" : "text-muted"}`} />
-                        <span>{log}</span>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                <h3 className="text-xl font-bold text-foreground border-b border-border pb-4">
+                  On-Chain Audit Receipt
+                </h3>
+                <p className="text-sm text-muted leading-relaxed">
+                  Every Abita dispute is judged by a decentralized validator
+                  subcommittee on Somnia. The full chain-of-thought reasoning,
+                  consensus signatures, and outcome are permanently recorded
+                  on-chain and publicly verifiable — no other AI arbitration
+                  platform can show you this.
+                </p>
+                <a
+                  href={`https://agents.testnet.somnia.network${auditRequestId ? `/receipts/${auditRequestId}` : ""}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-3 mt-4 w-full rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-xs uppercase tracking-widest font-bold text-primary/70 mb-0.5">
+                      Somnia Agent Explorer
+                    </span>
+                    <span className="block font-mono text-sm truncate">
+                      {auditRequestId
+                        ? `Request #${auditRequestId}`
+                        : "agents.testnet.somnia.network"}
+                    </span>
+                  </div>
+                  <ExternalLink className="h-5 w-5 flex-shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </a>
               </div>
 
               {showWinner && (
@@ -292,21 +441,45 @@ export default function VerdictPage() {
                   className="rounded-2xl border border-primary/30 bg-card p-8 md:p-12 text-center space-y-6 relative overflow-hidden shadow-md"
                   style={{ boxShadow: "0 0 40px rgba(37, 99, 235, 0.06)" }}
                 >
-                  <motion.div animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.2, 0.1] }} transition={{ repeat: Infinity, duration: 3 }} className="absolute inset-0 rounded-full bg-primary/5 blur-3xl -z-10" />
+                  <motion.div
+                    animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.2, 0.1] }}
+                    transition={{ repeat: Infinity, duration: 3 }}
+                    className="absolute inset-0 rounded-full bg-primary/5 blur-3xl -z-10"
+                  />
                   <div className="flex h-16 w-16 rounded-full bg-primary/10 border border-primary/30 text-primary mx-auto">
                     <Award className="h-8 w-8 mx-auto my-auto animate-bounce" />
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase text-primary tracking-widest font-bold block">Winning Wallet Address</span>
+                    <span className="text-[10px] uppercase text-primary tracking-widest font-bold block">
+                      Winning Wallet Address
+                    </span>
                     <span className="mt-2 block font-mono text-lg md:text-xl text-foreground break-all max-w-md mx-auto border border-border rounded-xl px-4 py-2 bg-background">
                       {job.lastVerdictWinner}
                     </span>
                   </div>
                   <div className="pt-6 border-t border-border max-w-sm mx-auto">
-                    <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
-                      {job.status === 4 ? "Escrow Settle Release" : "Deposited dispute fee refund"}
-                    </span>
-                    <span className="text-3xl font-bold text-foreground block mt-1">{escrowAmountCount.toFixed(2)} STT</span>
+                    {job.status === 4 ? (
+                      <>
+                        <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
+                          Escrow Released
+                        </span>
+                        <span className="text-3xl font-bold text-foreground block mt-1">
+                          {escrowAmountCount.toFixed(2)} STT
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
+                          Escrow Status
+                        </span>
+                        <span className="text-lg font-semibold text-[#D4A017] block mt-1">
+                          Pending Your Decision
+                        </span>
+                        <span className="text-xs text-muted block mt-0.5">
+                          Escrow is locked until you choose below.
+                        </span>
+                      </>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -314,13 +487,20 @@ export default function VerdictPage() {
               {showWinner && job.status === 3 && (
                 <div className="pt-6">
                   {isClient ? (
-                    <ClientChoice onClose={() => closeJob(jobId)} onRetry={() => retryJob(jobId)} isPending={closePending || retryPending} />
+                    <ClientChoice
+                      onClose={() => closeJob(jobId)}
+                      onRetry={() => retryJob(jobId)}
+                      isPending={closePending || retryPending}
+                    />
                   ) : (
                     <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-2 shadow-sm">
                       <CheckCircle2 className="h-8 w-8 text-primary mx-auto animate-pulse" />
-                      <h3 className="text-lg font-semibold text-foreground">Decision Awaiting Client</h3>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        Decision Awaiting Client
+                      </h3>
                       <p className="text-xs text-muted max-w-xs mx-auto">
-                        The client must now choose: Terminate & Close (refund escrow) or Request Corrections (retry).
+                        The client must now choose: Terminate & Close (refund
+                        escrow) or Request Corrections (retry).
                       </p>
                     </div>
                   )}

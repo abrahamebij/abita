@@ -32,4 +32,18 @@ export const config = createConfig({
 });
 
 // Contract deployment address of AbiCore.sol (Abraham: replace with deployed address!)
-export const ABICORE_CONTRACT_ADDRESS = "0xea62A8a3017CDE1810C2899a0F20e103E4af7250";
+export const ABICORE_CONTRACT_ADDRESS = "0x0654943E0c6B9184620f1da0cfD62Ba3A386ddC8";
+
+// Somnia Agent Platform contract — used to query the required fee before judging
+export const SOMNIA_PLATFORM_ADDRESS = "0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776";
+
+// Minimal ABI for reading getRequestDeposit() from the Somnia Agent Platform
+export const SOMNIA_PLATFORM_ABI = [
+  {
+    name: "getRequestDeposit",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;

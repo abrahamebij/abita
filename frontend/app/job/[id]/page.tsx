@@ -308,6 +308,13 @@ export default function JobDetail() {
     setArgumentHistory(history);
   }, [job.clientArgument, job.freelancerArgument, jobId, job.disputeCount, job.client]);
 
+  // Synchronize and persist the last non-zero pendingRequestId in localStorage
+  useEffect(() => {
+    if (!jobId || !job.pendingRequestId || job.pendingRequestId === 0n) return;
+    const reqIdKey = `abita_job_${jobId.toString()}_last_request_id`;
+    localStorage.setItem(reqIdKey, job.pendingRequestId.toString());
+  }, [job.pendingRequestId, jobId]);
+
   // Show full-page loader only if we are loading and don't have contract data yet
   const showSpinner = dataLoading && !contractJob;
 
