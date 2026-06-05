@@ -7,6 +7,7 @@ import { formatEther } from "viem";
 import { ArrowLeft, Wallet, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { ABICORE_CONTRACT_ADDRESS } from "@/lib/config";
 
 import { useJobData } from "@/hooks/useJobData";
 import { useApproveDelivery } from "@/hooks/useApproveDelivery";
@@ -270,11 +271,13 @@ export default function JobDetail() {
 
   const [argumentHistory, setArgumentHistory] = useState<ArgumentHistoryItem[]>([]);
 
-  // Synchronize and persist past dispute round arguments in localStorage
+  // Synchronize and persist past dispute round arguments in localStorage.
+  // Key includes the contract address so redeployed contracts don't bleed into each other.
   useEffect(() => {
     if (!jobId || !job.client || job.client === "0x0000000000000000000000000000000000000000") return;
-    
-    const cacheKey = `abita_job_${jobId.toString()}_history`;
+
+    const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
+    const cacheKey = `abita_${contractSlug}_job_${jobId.toString()}_history`;
     const cached = localStorage.getItem(cacheKey);
     const history: ArgumentHistoryItem[] = cached ? JSON.parse(cached) : [];
 
@@ -311,7 +314,8 @@ export default function JobDetail() {
   // Synchronize and persist the last non-zero pendingRequestId in localStorage
   useEffect(() => {
     if (!jobId || !job.pendingRequestId || job.pendingRequestId === 0n) return;
-    const reqIdKey = `abita_job_${jobId.toString()}_last_request_id`;
+    const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
+    const reqIdKey = `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`;
     localStorage.setItem(reqIdKey, job.pendingRequestId.toString());
   }, [job.pendingRequestId, jobId]);
 

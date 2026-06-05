@@ -118,11 +118,12 @@ export default function VerdictPage() {
   // the last known requestId in state to keep the link alive after verdict.
   const [auditRequestId, setAuditRequestId] = useState<string | null>(null);
 
-  // Initial load from localStorage
+  // Initial load from localStorage — key is scoped to contract address to avoid stale data after redeploy
   useEffect(() => {
     if (jobId) {
+      const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
       const cachedId = localStorage.getItem(
-        `abita_job_${jobId.toString()}_last_request_id`,
+        `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`,
       );
       if (cachedId) {
         setAuditRequestId(cachedId);
@@ -166,8 +167,9 @@ export default function VerdictPage() {
               `[Abita] Captured requestId from on-chain event logs: #${reqIdStr}`,
             );
             setAuditRequestId(reqIdStr);
+            const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
             localStorage.setItem(
-              `abita_job_${jobId.toString()}_last_request_id`,
+              `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`,
               reqIdStr,
             );
           }
@@ -188,8 +190,9 @@ export default function VerdictPage() {
       );
       setAuditRequestId(id);
       if (jobId) {
+        const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
         localStorage.setItem(
-          `abita_job_${jobId.toString()}_last_request_id`,
+          `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`,
           id,
         );
       }
