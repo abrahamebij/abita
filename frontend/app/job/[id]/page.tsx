@@ -326,11 +326,6 @@ export default function JobDetail() {
     );
   }
 
-  // If a dispute has been initiated or is active, the active round is disputeCount + 1, capped at 5
-  const activeDisputeRound = (job.clientDisputeStaked || job.freelancerDisputeStaked || job.status === 2)
-    ? Math.min(job.disputeCount + 1, 5)
-    : job.disputeCount;
-
   return (
     <div className="flex-grow flex flex-col min-h-screen bg-background text-foreground font-sans">
       {/* Navigation Header */}
@@ -355,7 +350,14 @@ export default function JobDetail() {
       {/* Main Grid */}
       <main className="max-w-4xl mx-auto px-4 py-12 flex-1 w-full space-y-8">
         {/* Dispute Escalation Bar Tracker */}
-        <DisputeProgress currentDispute={activeDisputeRound} />
+        <DisputeProgress
+          completedCount={job.disputeCount}
+          isDisputeActive={
+            job.clientDisputeStaked ||
+            job.freelancerDisputeStaked ||
+            job.status === 2
+          }
+        />
 
         <div className="rounded-2xl border border-border bg-card p-8 space-y-6 shadow-sm">
           <div className="flex items-center justify-between">
@@ -428,6 +430,42 @@ export default function JobDetail() {
           </div>
         </div>
 
+        {/* Previous AI Verdict Banner — shown to both parties after any resolved dispute round */}
+        {job.lastVerdictWinner &&
+          job.lastVerdictWinner !== "0x0000000000000000000000000000000000000000" && (() => {
+            const winnerIsClient = job.lastVerdictWinner.toLowerCase() === job.client.toLowerCase();
+            return (
+              <div className="rounded-xl border border-border bg-card px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4 shadow-sm">
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted block mb-1">
+                    Last AI Verdict — Round {job.disputeCount}
+                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                      winnerIsClient
+                        ? "border-red-500/30 bg-red-500/10 text-red-400"
+                        : "border-green-500/30 bg-green-500/10 text-green-400"
+                    }`}>
+                      {winnerIsClient ? "Client won" : "Freelancer won"}
+                    </span>
+                    {!winnerIsClient && (
+                      <span className="text-xs text-muted font-mono">
+                        Win streak: {job.freelancerWinStreak} / 2
+                      </span>
+                    )}
+                  </div>
+                  <span className="mt-2 block font-mono text-xs text-muted break-all">
+                    {job.lastVerdictWinner}
+                  </span>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] uppercase tracking-widest text-muted block">Disputes remaining</span>
+                  <span className="text-2xl font-bold text-foreground">{5 - job.disputeCount}</span>
+                </div>
+              </div>
+            );
+          })()}
+
         {/* Action Panel based on state and role */}
         {!isConnected ? (
           <div className="rounded-xl border border-dashed border-border p-8 text-center bg-card shadow-sm">
@@ -438,12 +476,19 @@ export default function JobDetail() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* 1. Open State - Freelancer Submits Delivery */}
+            {/* 1. Open State */}
             {job.status === 0 && isFreelancer && (
-              <DeliveryForm
-                onSubmit={(note) => submitDelivery(jobId, note)}
-                isPending={deliverPending}
-              />
+              <div className="space-y-3">
+                {job.deliveryNote && job.deliveryNote.trim() !== "" && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-primary">
+                    The client can re-appeal or approve your work. Re-confirm your delivery below to let the client approve payment.
+                  </div>
+                )}
+                <DeliveryForm
+                  onSubmit={(note) => submitDelivery(jobId, note)}
+                  isPending={deliverPending}
+                />
+              </div>
             )}
 
             {/* 2 & 3. Delivered State / Dispute Staking Pipeline */}
@@ -453,6 +498,7 @@ export default function JobDetail() {
               isFreelancer={isFreelancer}
               clientDisputeStaked={job.clientDisputeStaked}
               freelancerDisputeStaked={job.freelancerDisputeStaked}
+              hasDelivery={!!job.deliveryNote && job.deliveryNote.trim() !== ""}
               onApprove={() => approveDelivery(jobId)}
               onRaiseDispute={() => raiseDispute(jobId)}
               approvePending={approvePending}

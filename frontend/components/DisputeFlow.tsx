@@ -10,6 +10,7 @@ interface DisputeFlowProps {
   isFreelancer: boolean;
   clientDisputeStaked: boolean;
   freelancerDisputeStaked: boolean;
+  hasDelivery: boolean;
   onApprove: () => void;
   onRaiseDispute: () => void;
   approvePending: boolean;
@@ -26,14 +27,18 @@ export default function DisputeFlow({
   isFreelancer,
   clientDisputeStaked,
   freelancerDisputeStaked,
+  hasDelivery,
   onApprove,
   onRaiseDispute,
   approvePending,
   stakePending,
 }: DisputeFlowProps) {
   
-  // 1. Delivered State Actions - Client approves work or initially files a dispute
-  const showClientActions = status === 1 && isClient;
+  // Show client action panel when:
+  //  a) status=1 (Delivered) — approve or dispute
+  //  b) status=0 (Open) with a delivery note present — re-appeal dispute only (after freelancer single win)
+  const showClientActions = isClient && (status === 1 || (status === 0 && hasDelivery));
+  const isReAppeal = status === 0 && hasDelivery; // Open state after a previous verdict
 
   // 2. Active Double-Staking Pipeline Tracker (when at least one party has locked 1 STT but not both yet)
   const showStakingPipeline = 
@@ -42,41 +47,46 @@ export default function DisputeFlow({
 
   return (
     <div className="space-y-6">
-      {/* Client Approval vs Initial Dispute Stake Action Cards */}
       {showClientActions && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          {/* Escrow Release Approval Card */}
+          {/* Escrow Release Approval */}
+          {/* In Delivered (status=1): active. In re-appeal (status=0): disabled — freelancer must re-confirm first */}
           <div className="rounded-2xl border border-border bg-card p-8 flex flex-col justify-between shadow-sm">
             <div>
               <h3 className="text-xl font-bold text-foreground">
                 Approve Delivery
               </h3>
               <p className="mt-2 text-xs text-muted">
-                Releases 100% of the escrow funds directly to the freelancer. This settles the agreement.
+                {isReAppeal
+                  ? "The freelancer must re-confirm their delivery before you can approve payment."
+                  : "Releases 100% of the escrow funds directly to the freelancer. This settles the agreement."}
               </p>
             </div>
             <motion.button
-              disabled={approvePending}
+              disabled={approvePending || isReAppeal}
               onClick={onApprove}
-              className="mt-6 flex w-full items-center justify-center rounded-xl bg-primary py-3.5 text-sm font-bold text-card hover:bg-primary-hover transition-all duration-300 disabled:opacity-50 cursor-pointer shadow-sm"
+              title={isReAppeal ? "Freelancer must re-confirm delivery first" : undefined}
+              className="mt-6 flex w-full items-center justify-center rounded-xl bg-primary py-3.5 text-sm font-bold text-card hover:bg-primary-hover transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
             >
               {approvePending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
-              <span>Approve & Release Funds</span>
+              <span>{isReAppeal ? "Awaiting Re-confirmation" : "Approve & Release Funds"}</span>
             </motion.button>
           </div>
 
-          {/* Initial Dispute Deposit Card */}
+          {/* Dispute / Re-appeal Deposit Card */}
           <div className="rounded-2xl border border-border bg-card p-8 flex flex-col justify-between shadow-sm">
             <div>
               <h3 className="text-xl font-bold text-foreground">
-                File a Dispute
+                {isReAppeal ? "Re-appeal Dispute" : "File a Dispute"}
               </h3>
               <p className="mt-2 text-xs text-muted">
-                Disagree with the work? Deposit a 1 STT dispute fee. The freelancer must also deposit 1 STT to activate AI adjudication.
+                {isReAppeal
+                  ? "The AI previously ruled for the freelancer. Deposit 1 STT to escalate to another round of arbitration."
+                  : "Disagree with the work? Deposit a 1 STT dispute fee. The freelancer must also deposit 1 STT to activate AI adjudication."}
               </p>
             </div>
             <motion.button
