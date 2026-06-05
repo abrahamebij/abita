@@ -316,6 +316,14 @@ contract AbiCore {
         uint256 floor = platform.getRequestDeposit();
         uint256 totalDeposit = floor + (LLM_COST_PER_AGENT * SUBCOMMITTEE_SIZE);
 
+        // Plain-English: The platform fee (0.24 STT) comes out of the contract's balance.
+        // The 2 STT stakes cover the treasury fee in handleResponse, but 0.24 STT of that
+        // gets spent here first, leaving only 1.76 STT from stakes for treasury.
+        // To keep job.escrowAmount in sync with what's actually available to pay out,
+        // we reduce it by the platform fee now. Without this, the final payout reverts
+        // because the contract is 0.24 STT short of what job.escrowAmount promises.
+        job.escrowAmount -= totalDeposit;
+
         // Call the Somnia Platform with the full required deposit
         uint256 requestId = platform.createRequest{value: totalDeposit}(
             LLM_AGENT_ID,
