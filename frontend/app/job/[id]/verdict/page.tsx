@@ -23,8 +23,6 @@ import { useCloseJob } from "@/hooks/useCloseJob";
 import { useRetryJob } from "@/hooks/useRetryJob";
 import ClientChoice from "@/components/ClientChoice";
 
-
-
 export default function VerdictPage() {
   const params = useParams();
   const { address } = useAccount();
@@ -87,7 +85,6 @@ export default function VerdictPage() {
     }
   }, [retryError]);
 
-  const [showWinner, setShowWinner] = useState(false);
   const [escrowAmountCount, setEscrowAmountCount] = useState(0);
 
   const isClient =
@@ -120,7 +117,6 @@ export default function VerdictPage() {
   // Note: pendingRequestId is reset to 0 after the callback fires — so we track
   // the last known requestId in state to keep the link alive after verdict.
   const [auditRequestId, setAuditRequestId] = useState<string | null>(null);
-  console.log("auditRequestId: ", auditRequestId);
 
   // Initial load from localStorage
   useEffect(() => {
@@ -152,13 +148,13 @@ export default function VerdictPage() {
             inputs: [
               { indexed: true, name: "jobId", type: "uint256" },
               { indexed: false, name: "requestId", type: "uint256" },
-              { indexed: false, name: "disputeCount", type: "uint8" }
-            ]
+              { indexed: false, name: "disputeCount", type: "uint8" },
+            ],
           },
           args: {
-            jobId: jobId
+            jobId: jobId,
           },
-          fromBlock
+          fromBlock,
         });
 
         if (logs.length > 0) {
@@ -166,9 +162,14 @@ export default function VerdictPage() {
           const reqId = latestLog.args.requestId;
           if (reqId) {
             const reqIdStr = reqId.toString();
-            console.log(`[Abita] Captured requestId from on-chain event logs: #${reqIdStr}`);
+            console.log(
+              `[Abita] Captured requestId from on-chain event logs: #${reqIdStr}`,
+            );
             setAuditRequestId(reqIdStr);
-            localStorage.setItem(`abita_job_${jobId.toString()}_last_request_id`, reqIdStr);
+            localStorage.setItem(
+              `abita_job_${jobId.toString()}_last_request_id`,
+              reqIdStr,
+            );
           }
         }
       } catch (err) {
@@ -235,23 +236,17 @@ export default function VerdictPage() {
     if (closeSuccess || retrySuccess) refetch();
   }, [closeSuccess, retrySuccess, refetch]);
 
-  useEffect(() => {
-    // Once status leaves Disputed (2), the Somnia callback has fired — show verdict
-    if (job && job.status !== 2) {
-      if (job.status !== 0) {
-        // status 0 is the default empty job before data loads — don't treat it as a verdict
-        console.log(
-          `[Abita] Verdict arrived — winner: ${job.lastVerdictWinner}, status now: ${job.status}`,
-        );
-        setShowWinner(true);
-      }
-    }
-  }, [job?.status, job?.lastVerdictWinner]);
+  // The verdict has arrived when lastVerdictWinner is a real address (non-zero).
+  // We can't use status alone — a freelancer single-win resets status back to Open (0),
+  // so status 0 can legitimately be a post-verdict state.
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+  const hasVerdict =
+    !!contractJob &&
+    !!job.lastVerdictWinner &&
+    job.lastVerdictWinner.toLowerCase() !== ZERO_ADDRESS;
 
   useEffect(() => {
-    // Only count up the escrow amount when status=4 (Closed) — meaning it actually moved.
-    // status=3 (PendingClientChoice) means the client won but hasn't chosen yet — escrow is still locked.
-    if (showWinner && job && job.status === 4) {
+    if (hasVerdict && job && job.status === 4) {
       const targetAmount = parseFloat(formatEther(job.escrowAmount));
       let current = 0;
       const step = targetAmount / 50;
@@ -266,7 +261,7 @@ export default function VerdictPage() {
       }, 30);
       return () => clearInterval(countTimer);
     }
-  }, [showWinner, job]);
+  }, [hasVerdict, job]);
 
   // Show full-page loader only if we are loading and don't have contract data yet
   const showSpinner = dataLoading && !contractJob;
@@ -402,38 +397,7 @@ export default function VerdictPage() {
                 </div>
               )}
 
-              <div className="rounded-2xl border border-border bg-card p-8 md:p-12 space-y-4 shadow-sm">
-                <h3 className="text-xl font-bold text-foreground border-b border-border pb-4">
-                  On-Chain Audit Receipt
-                </h3>
-                <p className="text-sm text-muted leading-relaxed">
-                  Every Abita dispute is judged by a decentralized validator
-                  subcommittee on Somnia. The full chain-of-thought reasoning,
-                  consensus signatures, and outcome are permanently recorded
-                  on-chain and publicly verifiable — no other AI arbitration
-                  platform can show you this.
-                </p>
-                <a
-                  href={`https://agents.testnet.somnia.network${auditRequestId ? `/receipts/${auditRequestId}` : ""}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center space-x-3 mt-4 w-full rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <span className="block text-xs uppercase tracking-widest font-bold text-primary/70 mb-0.5">
-                      Somnia Agent Explorer
-                    </span>
-                    <span className="block font-mono text-sm truncate">
-                      {auditRequestId
-                        ? `Request #${auditRequestId}`
-                        : "agents.testnet.somnia.network"}
-                    </span>
-                  </div>
-                  <ExternalLink className="h-5 w-5 flex-shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                </a>
-              </div>
-
-              {showWinner && (
+              {hasVerdict && (
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -449,15 +413,27 @@ export default function VerdictPage() {
                   <div className="flex h-16 w-16 rounded-full bg-primary/10 border border-primary/30 text-primary mx-auto">
                     <Award className="h-8 w-8 mx-auto my-auto animate-bounce" />
                   </div>
+
+                  {/* Winner role badge */}
                   <div>
-                    <span className="text-[10px] uppercase text-primary tracking-widest font-bold block">
+                    <span
+                      className="inline-block text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full border mb-3
+                      border-primary/40 bg-primary/10 text-primary"
+                    >
+                      {job.lastVerdictWinner.toLowerCase() ===
+                      job.client.toLowerCase()
+                        ? "Client wins"
+                        : "Freelancer wins"}
+                    </span>
+                    <span className="text-[10px] uppercase text-muted tracking-widest block mb-1">
                       Winning Wallet Address
                     </span>
-                    <span className="mt-2 block font-mono text-lg md:text-xl text-foreground break-all max-w-md mx-auto border border-border rounded-xl px-4 py-2 bg-background">
+                    <span className="block font-mono text-lg md:text-xl text-foreground break-all max-w-md mx-auto border border-border rounded-xl px-4 py-2 bg-background">
                       {job.lastVerdictWinner}
                     </span>
                   </div>
-                  <div className="pt-6 border-t border-border max-w-sm mx-auto">
+
+                  <div className="pt-6 border-t border-border max-w-sm mx-auto space-y-4">
                     {job.status === 4 ? (
                       <>
                         <span className="text-[10px] uppercase text-muted tracking-wider block font-semibold">
@@ -480,11 +456,23 @@ export default function VerdictPage() {
                         </span>
                       </>
                     )}
+
+                    {/* Audit receipt — secondary, just a button */}
+
+                    <Link
+                      href={`https://agents.testnet.somnia.network${auditRequestId ? `/receipts/${auditRequestId}` : ""}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex justify-center items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-card hover:bg-primary-hover transition-all duration-300 hover:shadow-md cursor-pointer"
+                    >
+                      View on-chain audit receipt
+                      <ExternalLink className="size-4 shrink-0" />
+                    </Link>
                   </div>
                 </motion.div>
               )}
 
-              {showWinner && job.status === 3 && (
+              {hasVerdict && job.status === 3 && (
                 <div className="pt-6">
                   {isClient ? (
                     <ClientChoice
