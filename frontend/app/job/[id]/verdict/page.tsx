@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount, usePublicClient } from "wagmi";
@@ -167,7 +168,10 @@ export default function VerdictPage() {
               `[Abita] Captured requestId from on-chain event logs: #${reqIdStr}`,
             );
             setAuditRequestId(reqIdStr);
-            const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
+            const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(
+              2,
+              10,
+            ).toLowerCase();
             localStorage.setItem(
               `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`,
               reqIdStr,
@@ -190,7 +194,10 @@ export default function VerdictPage() {
       );
       setAuditRequestId(id);
       if (jobId) {
-        const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
+        const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(
+          2,
+          10,
+        ).toLowerCase();
         localStorage.setItem(
           `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`,
           id,
@@ -248,18 +255,20 @@ export default function VerdictPage() {
     !!job.lastVerdictWinner &&
     job.lastVerdictWinner.toLowerCase() !== ZERO_ADDRESS;
 
+  // The Number Animation
+  const currentRef = useRef(0);
   useEffect(() => {
     if (hasVerdict && job && job.status === 4) {
       const targetAmount = parseFloat(formatEther(job.escrowAmount));
-      let current = 0;
       const step = targetAmount / 50;
       const countTimer = setInterval(() => {
-        current += step;
-        if (current >= targetAmount) {
+        currentRef.current += step;
+        console.log("current: ", currentRef.current);
+        if (currentRef.current >= targetAmount) {
           setEscrowAmountCount(targetAmount);
           clearInterval(countTimer);
         } else {
-          setEscrowAmountCount(current);
+          setEscrowAmountCount(currentRef.current);
         }
       }, 30);
       return () => clearInterval(countTimer);

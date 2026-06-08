@@ -45,6 +45,11 @@ contract AbiCore {
     // Mapping to correlate Somnia's asynchronous request ID to a specific Job ID
     mapping(uint256 => uint256) public requestToJob;
 
+    // Tracks the exact platform fee sent per job in judgeDispute so handleResponse
+    // can deduct it from Abita's 2 STT treasury cut (instead of the winner's escrow).
+    // Plain-English: When we pay 0.24 STT to run the AI, it comes from our fee, not the freelancer's money.
+    mapping(uint256 => uint256) private platformFeeUsed;
+
     // --- Custom Types & Enums ---
 
     // Plain-English explanation for Abraham:
@@ -316,13 +321,9 @@ contract AbiCore {
         uint256 floor = platform.getRequestDeposit();
         uint256 totalDeposit = floor + (LLM_COST_PER_AGENT * SUBCOMMITTEE_SIZE);
 
-        // Plain-English: The platform fee (0.24 STT) comes out of the contract's balance.
-        // The 2 STT stakes cover the treasury fee in handleResponse, but 0.24 STT of that
-        // gets spent here first, leaving only 1.76 STT from stakes for treasury.
-        // To keep job.escrowAmount in sync with what's actually available to pay out,
-        // we reduce it by the platform fee now. Without this, the final payout reverts
-        // because the contract is 0.24 STT short of what job.escrowAmount promises.
-        job.escrowAmount -= totalDeposit;
+        // Store how much we paid to the platform so handleResponse can deduct it from the
+        // treasury payment. This keeps the escrow 100% intact for the winner.
+        platformFeeUsed[jobId] = totalDeposit;
 
         // Call the Somnia Platform with the full required deposit
         uint256 requestId = platform.createRequest{value: totalDeposit}(
@@ -395,8 +396,13 @@ contract AbiCore {
 
         job.lastVerdictWinner = winner;
 
-        // Abita collects 2 STT (1 STT staked by each party) as the dispute adjudication fee.
-        (bool feeSuccess, ) = treasury.call{value: 2 ether}("");
+        // Abita's revenue: 2 STT from both parties' dispute stakes.
+        // The platform fee (0.24 STT) was already spent from those stakes inside judgeDispute,
+        // so treasury receives the remainder: 2 STT - platformFeeUsed = 1.76 STT.
+        // The winner's escrow is completely untouched by the AI cost.
+        uint256 platformFee = platformFeeUsed[jobId];
+        uint256 treasuryAmount = 2 ether - platformFee;
+        (bool feeSuccess, ) = treasury.call{value: treasuryAmount}("");
         require(feeSuccess, "Dispute fee payment to treasury failed");
 
         // Apply verdict logic per AGENTS.md rules

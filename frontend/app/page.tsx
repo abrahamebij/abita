@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Brain, ShieldCheck, Scale, Sparkles, Wallet } from "lucide-react";
 import { useAccount, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
+import MarketplaceTeaser from "@/components/MarketplaceTeaser";
 
 /**
  * @notice Premium Custom Animated Hero Graphic
@@ -349,6 +350,11 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* 4.5. MARKETPLACE TEASER */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <MarketplaceTeaser />
         </section>
 
         {/* 5. OBJECTION HANDLING & FINAL HIGH-CONVERSION CTA */}
