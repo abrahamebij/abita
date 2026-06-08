@@ -192,19 +192,15 @@ export default function LandingPage() {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="space-y-6 text-left"
+            className="space-y-6 text-center lg:text-left max-w-xl mx-auto"
           >
-            <div className="inline-flex items-center space-x-2 rounded-full border border-primary/20 bg-primary-light px-4 py-1.5 text-xs font-semibold text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Decentralized AI Adjudication Platform</span>
-            </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
               Symmetrical Escrow.<br />
               <span className="text-primary">AI Resolved.</span>
             </h1>
 
-            <p className="text-lg text-muted max-w-xl leading-relaxed">
+            <p className="lg:text-lg text-muted leading-relaxed">
               Abita protects freelance transactions with trustless, self-executing escrows and deterministic, consensus-verified AI judges on Somnia Network.
             </p>
 
