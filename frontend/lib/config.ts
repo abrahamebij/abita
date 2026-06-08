@@ -32,7 +32,7 @@ export const config = createConfig({
 });
 
 // Contract deployment address of AbiCore.sol (User: replace with deployed address!)
-export const ABICORE_CONTRACT_ADDRESS = "0x5373D25A3bFd0e4f0d67A9E8C8a213AB82DeB9EB";
+export const ABICORE_CONTRACT_ADDRESS = "0x36471F4a5054886fdA2B9D8f08436d0662d06907";
 
 // Somnia Agent Platform contract — used to query the required fee before judging
 export const SOMNIA_PLATFORM_ADDRESS = "0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776";
