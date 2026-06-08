@@ -76,7 +76,9 @@ contract AbiCore {
         uint8 disputeCount;             // Total disputes raised on this job (caps at 5)
         uint8 freelancerWinStreak;      // Consecutive AI wins by the freelancer (resets on client win)
         address lastVerdictWinner;      // Wallet address declared winner in the last dispute round
-        uint256 pendingRequestId;       // Active Somnia agent request ID during adjudication
+        string lastVerdictReason;       // AI-written explanation for the last verdict (parsed from JSON response)
+        uint256 pendingRequestId;       // Active Somnia agent request ID (reset to 0 after callback fires)
+        uint256[] judgmentRequestIds;   // All Somnia request IDs ever issued for this job — one per dispute round, never reset
         bool clientDisputeStaked;       // Flag indicating if client has paid the 1 STT dispute fee
         bool freelancerDisputeStaked;   // Flag indicating if freelancer has paid the 1 STT dispute fee
     }
@@ -137,7 +139,9 @@ contract AbiCore {
             disputeCount: 0,
             freelancerWinStreak: 0,
             lastVerdictWinner: address(0),
+            lastVerdictReason: "",
             pendingRequestId: 0,
+            judgmentRequestIds: new uint256[](0),
             clientDisputeStaked: false,
             freelancerDisputeStaked: false
         });
@@ -282,11 +286,17 @@ contract AbiCore {
         // Plain-English explanation for Abraham:
         // System Prompt acts as the AI judge's guidelines.
         // User Prompt supplies all specific evidence: requirements, delivery, arguments, and addresses.
+        // The AI must return a JSON object with exactly two fields:
+        //   "winner" — the hex address of the winning party
+        //   "reason" — one sentence explaining the verdict
         string memory systemPrompt =
             "You are an impartial arbitrator for a freelance work dispute. "
             "Evaluate whether the freelancer's delivery meets the client's stated requirements. "
             "Consider both arguments carefully. "
-            "Return ONLY the Ethereum wallet address of the winning party. Nothing else.";
+            "Respond with ONLY a valid JSON object with exactly two fields: "
+            "\"winner\" (the full Ethereum wallet address of the winning party) "
+            "and \"reason\" (one concise sentence explaining your verdict, no special characters). "
+            "Example: {\"winner\":\"0xabc...\",\"reason\":\"The delivery met all stated requirements.\"}";
 
         bool isFinalRound = (job.disputeCount == 5);
 
@@ -300,10 +310,9 @@ contract AbiCore {
             "Freelancer wallet: ", job.freelancer.toHexString()
         ));
 
-        // Constrain the AI's output to strictly either the client's or the freelancer's hex address
-        string[] memory allowedValues = new string[](2);
-        allowedValues[0] = job.client.toHexString();
-        allowedValues[1] = job.freelancer.toHexString();
+        // No allowedValues constraint — the response is JSON, not a bare address.
+        // The platform will return the full JSON string; we parse it in handleResponse.
+        string[] memory allowedValues = new string[](0);
 
         // Encode the payload according to Somnia LLM platform selector "inferString(string,string,bool,string[])"
         bytes memory payload = abi.encodeWithSelector(
@@ -336,6 +345,7 @@ contract AbiCore {
         // Map the Somnia request back to this jobId so the callback knows which job to update
         requestToJob[requestId] = jobId;
         job.pendingRequestId = requestId;
+        job.judgmentRequestIds.push(requestId); // Append — each round’s receipt is preserved permanently
 
         emit JudgmentRequested(jobId, requestId, job.disputeCount);
     }
@@ -377,9 +387,14 @@ contract AbiCore {
             return;
         }
 
-        // The LLM agent returns a string (the winning wallet address in hex).
-        // responses[0].result is ABI-encoded bytes — decode it as a string.
-        string memory winnerStr = abi.decode(responses[0].result, (string));
+        // The LLM agent returns JSON: {"winner":"0x...","reason":"..."}
+        // responses[0].result is ABI-encoded bytes — decode as string first.
+        string memory responseJson = abi.decode(responses[0].result, (string));
+
+        // Extract the winner address and verdict reason from the JSON string.
+        string memory winnerStr = _extractJsonField(responseJson, "winner");
+        string memory reason   = _extractJsonField(responseJson, "reason");
+
         string memory clientHex = job.client.toHexString();
         string memory freelancerHex = job.freelancer.toHexString();
 
@@ -389,12 +404,12 @@ contract AbiCore {
         } else if (keccak256(abi.encodePacked(winnerStr)) == keccak256(abi.encodePacked(freelancerHex))) {
             winner = job.freelancer;
         } else {
-            // Safe fallback: if the address string doesn't match either party exactly,
-            // default to freelancer to avoid permanently locking funds.
+            // Safe fallback: if parsing fails or address doesn't match, default to freelancer.
             winner = job.freelancer;
         }
 
         job.lastVerdictWinner = winner;
+        job.lastVerdictReason = bytes(reason).length > 0 ? reason : responseJson; // store full response if reason not parsed
 
         // Abita's revenue: 2 STT from both parties' dispute stakes.
         // The platform fee (0.24 STT) was already spent from those stakes inside judgeDispute,
@@ -496,5 +511,57 @@ contract AbiCore {
      */
     function getTotalJobs() external view returns (uint256) {
         return jobCounter;
+    }
+
+    /**
+     * @notice Extracts a string value from a flat JSON object by key.
+     * @param json  The raw JSON string, e.g. {"winner":"0xabc","reason":"..."}
+     * @param key   The field name to look for, e.g. "winner"
+     * @return      The string value, or "" if not found.
+     *
+     * Plain-English explanation for Abraham:
+     * Solidity has no built-in JSON parser, so we do it manually.
+     * We search for the pattern  "key":"  in the raw bytes, then read
+     * characters until the next unescaped double-quote marks the end of the value.
+     * This is intentionally simple — it works for flat JSON with string values only,
+     * which is exactly what the AI returns.
+     */
+    function _extractJsonField(string memory json, string memory key)
+        internal
+        pure
+        returns (string memory)
+    {
+        bytes memory jb = bytes(json);
+        // Build the search pattern: "key":"
+        bytes memory pattern = abi.encodePacked('"', key, '":"');
+        uint256 patLen = pattern.length;
+
+        if (jb.length < patLen) return "";
+
+        // Scan for the pattern
+        for (uint256 i = 0; i <= jb.length - patLen; i++) {
+            bool found = true;
+            for (uint256 p = 0; p < patLen; p++) {
+                if (jb[i + p] != pattern[p]) { found = false; break; }
+            }
+            if (!found) continue;
+
+            // Pattern found — value starts right after pattern
+            uint256 start = i + patLen;
+            uint256 end   = start;
+
+            // Read until the closing quote (skip escaped quotes \")
+            while (end < jb.length) {
+                if (jb[end] == '"' && (end == 0 || jb[end - 1] != '\\')) break;
+                end++;
+            }
+
+            bytes memory result = new bytes(end - start);
+            for (uint256 k = 0; k < end - start; k++) {
+                result[k] = jb[start + k];
+            }
+            return string(result);
+        }
+        return "";
     }
 }

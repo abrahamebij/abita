@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useAccount, useWaitForTransactionReceipt } from "wagmi";
 import { formatEther } from "viem";
 import { ArrowLeft, Wallet, AlertCircle, Loader2 } from "lucide-react";
@@ -35,6 +35,7 @@ const STATUS_LABELS = ["Open", "Delivered", "Disputed", "Pending Client Choice",
 export default function JobDetail() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname()
   const { address, isConnected } = useAccount();
   
   const idStr = typeof params?.id === "string" ? params.id : "";
@@ -56,7 +57,9 @@ export default function JobDetail() {
     disputeCount: 0,
     freelancerWinStreak: 0,
     lastVerdictWinner: "0x0000000000000000000000000000000000000000",
+    lastVerdictReason: "",
     pendingRequestId: 0n,
+    judgmentRequestIds: [],
     clientDisputeStaked: false,
     freelancerDisputeStaked: false,
   };
@@ -444,7 +447,7 @@ export default function JobDetail() {
                   <span className="text-[10px] uppercase tracking-widest font-bold text-muted block mb-1">
                     Last AI Verdict — Round {job.disputeCount}
                   </span>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap my-2">
                     <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
                       winnerIsClient
                         ? "border-red-500/30 bg-red-500/10 text-red-400"
@@ -461,11 +464,16 @@ export default function JobDetail() {
                   <span className="mt-2 block font-mono text-xs text-muted break-all">
                     {job.lastVerdictWinner}
                   </span>
+
+                  <Link href={`${pathname}/verdict`} className="flex w-fit bg-primary hover:bg-primary/90 text-white py-2 px-4 mt-4 rounded-sm">
+                    See verdict
+                  </Link>
                 </div>
                 <div className="text-right shrink-0">
                   <span className="text-[10px] uppercase tracking-widest text-muted block">Disputes remaining</span>
                   <span className="text-2xl font-bold text-foreground">{5 - job.disputeCount}</span>
                 </div>
+
               </div>
             );
           })()}

@@ -92,7 +92,9 @@ export const ABICORE_ABI = [
           { name: "disputeCount", type: "uint8" },
           { name: "freelancerWinStreak", type: "uint8" },
           { name: "lastVerdictWinner", type: "address" },
+          { name: "lastVerdictReason", type: "string" },
           { name: "pendingRequestId", type: "uint256" },
+          { name: "judgmentRequestIds", type: "uint256[]" },
           { name: "clientDisputeStaked", type: "bool" },
           { name: "freelancerDisputeStaked", type: "bool" }
         ]

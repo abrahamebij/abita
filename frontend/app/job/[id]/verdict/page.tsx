@@ -1,11 +1,9 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAccount, usePublicClient } from "wagmi";
-import { ABICORE_CONTRACT_ADDRESS } from "@/lib/config";
+import { useAccount } from "wagmi";
 import { formatEther } from "viem";
 import {
   ArrowLeft,
@@ -27,7 +25,7 @@ import ClientChoice from "@/components/ClientChoice";
 export default function VerdictPage() {
   const params = useParams();
   const { address } = useAccount();
-  const publicClient = usePublicClient();
+  // const publicClient = usePublicClient();
 
   const idStr = typeof params?.id === "string" ? params.id : "";
   const jobId = idStr ? BigInt(idStr) : 0n;
@@ -52,7 +50,9 @@ export default function VerdictPage() {
         disputeCount: 0,
         freelancerWinStreak: 0,
         lastVerdictWinner: "0x0000000000000000000000000000000000000000",
+        lastVerdictReason: "",
         pendingRequestId: 0n,
+        judgmentRequestIds: [],
         clientDisputeStaked: false,
         freelancerDisputeStaked: false,
       },
@@ -113,98 +113,9 @@ export default function VerdictPage() {
     );
   }, [job?.status, job?.pendingRequestId, job?.lastVerdictWinner, jobId]);
 
-  // The on-chain audit trail lives at agents.testnet.somnia.network.
-  // We use the pendingRequestId stored on the job to deep-link to the receipt.
-  // Note: pendingRequestId is reset to 0 after the callback fires — so we track
-  // the last known requestId in state to keep the link alive after verdict.
-  const [auditRequestId, setAuditRequestId] = useState<string | null>(null);
-
-  // Initial load from localStorage — key is scoped to contract address to avoid stale data after redeploy
-  useEffect(() => {
-    if (jobId) {
-      const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
-      const cachedId = localStorage.getItem(
-        `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`,
-      );
-      if (cachedId) {
-        setAuditRequestId(cachedId);
-      }
-    }
-  }, [jobId]);
-
-  // Query historical on-chain events as a fallback to ensure we ALWAYS retrieve
-  // the correct request ID, even on clean devices or when localStorage is empty.
-  useEffect(() => {
-    if (!jobId || !publicClient) return;
-
-    const fetchLogs = async () => {
-      try {
-        const currentBlock = await publicClient.getBlockNumber();
-        const fromBlock = currentBlock > 990n ? currentBlock - 990n : 0n;
-
-        const logs = await publicClient.getLogs({
-          address: ABICORE_CONTRACT_ADDRESS as `0x${string}`,
-          event: {
-            type: "event",
-            name: "JudgmentRequested",
-            inputs: [
-              { indexed: true, name: "jobId", type: "uint256" },
-              { indexed: false, name: "requestId", type: "uint256" },
-              { indexed: false, name: "disputeCount", type: "uint8" },
-            ],
-          },
-          args: {
-            jobId: jobId,
-          },
-          fromBlock,
-        });
-
-        if (logs.length > 0) {
-          const latestLog = logs[logs.length - 1];
-          const reqId = latestLog.args.requestId;
-          if (reqId) {
-            const reqIdStr = reqId.toString();
-            console.log(
-              `[Abita] Captured requestId from on-chain event logs: #${reqIdStr}`,
-            );
-            setAuditRequestId(reqIdStr);
-            const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(
-              2,
-              10,
-            ).toLowerCase();
-            localStorage.setItem(
-              `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`,
-              reqIdStr,
-            );
-          }
-        }
-      } catch (err) {
-        console.error("Failed to query on-chain JudgmentRequested logs:", err);
-      }
-    };
-
-    fetchLogs();
-  }, [jobId, publicClient]);
-
-  useEffect(() => {
-    if (job?.pendingRequestId && job.pendingRequestId !== 0n) {
-      const id = job.pendingRequestId.toString();
-      console.log(
-        `[Abita] Somnia request ID captured: #${id} — audit URL: https://agents.testnet.somnia.network/receipts/${id}`,
-      );
-      setAuditRequestId(id);
-      if (jobId) {
-        const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(
-          2,
-          10,
-        ).toLowerCase();
-        localStorage.setItem(
-          `abita_${contractSlug}_job_${jobId.toString()}_last_request_id`,
-          id,
-        );
-      }
-    }
-  }, [job?.pendingRequestId, jobId]);
+  // All judgment requestIds come directly from the contract — no localStorage, no events.
+  // judgmentRequestIds is a permanent array pushed to each time judgeDispute is called.
+  const requestIds: string[] = (job.judgmentRequestIds ?? []).map((id: bigint) => id.toString());
 
   useEffect(() => {
     if (closeSuccess) {
@@ -263,7 +174,6 @@ export default function VerdictPage() {
       const step = targetAmount / 50;
       const countTimer = setInterval(() => {
         currentRef.current += step;
-        console.log("current: ", currentRef.current);
         if (currentRef.current >= targetAmount) {
           setEscrowAmountCount(targetAmount);
           clearInterval(countTimer);
@@ -362,13 +272,13 @@ export default function VerdictPage() {
                       : `${job.disputeCount} of 5`}
                   </span>
                 </div>
-                {auditRequestId && (
+                {job.pendingRequestId !== 0n && (
                   <div className="flex items-center justify-between text-xs border border-primary/20 rounded-lg px-4 py-3 bg-primary/5">
                     <span className="text-primary/70 font-mono">
                       Request ID
                     </span>
                     <span className="text-primary font-mono font-semibold">
-                      #{auditRequestId}
+                      #{job.pendingRequestId.toString()}
                     </span>
                   </div>
                 )}
@@ -445,6 +355,23 @@ export default function VerdictPage() {
                     </span>
                   </div>
 
+                  {/* AI Reasoning */}
+                  {job.lastVerdictReason && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4, duration: 0.5 }}
+                      className="max-w-md mx-auto rounded-xl border border-border bg-background px-5 py-4 text-left"
+                    >
+                      <span className="text-[10px] uppercase text-muted tracking-wider font-semibold block mb-2 flex items-center gap-1.5">
+                        <Brain className="size-3" /> AI Verdict Reasoning
+                      </span>
+                      <p className="text-sm text-foreground/80 font-mono leading-relaxed italic">
+                        &ldquo;{job.lastVerdictReason}&rdquo;
+                      </p>
+                    </motion.div>
+                  )}
+
                   <div className="pt-6 border-t border-border max-w-sm mx-auto space-y-4">
                     {job.status === 4 ? (
                       <>
@@ -469,17 +396,26 @@ export default function VerdictPage() {
                       </>
                     )}
 
-                    {/* Audit receipt — secondary, just a button */}
-
-                    <Link
-                      href={`https://agents.testnet.somnia.network${auditRequestId ? `/receipts/${auditRequestId}` : ""}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex justify-center items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-card hover:bg-primary-hover transition-all duration-300 hover:shadow-md cursor-pointer"
-                    >
-                      View on-chain audit receipt
-                      <ExternalLink className="size-4 shrink-0" />
-                    </Link>
+                    {/* Audit receipts — one button per dispute round */}
+                    {requestIds.length > 0 && (
+                      <div className="space-y-2 pt-2">
+                        <span className="text-[10px] uppercase text-muted tracking-wider font-semibold block">
+                          On-chain Audit Receipts
+                        </span>
+                        {requestIds.map((id, idx) => (
+                          <Link
+                            key={id}
+                            href={`https://agents.testnet.somnia.network/receipts/${id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex justify-between items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-muted hover:text-primary hover:border-primary/40 transition-all duration-200"
+                          >
+                            <span className="font-mono text-xs">Round {idx + 1} — #{id}</span>
+                            <ExternalLink className="size-3.5 shrink-0" />
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}

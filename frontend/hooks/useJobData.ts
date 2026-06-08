@@ -38,9 +38,11 @@ export function useJobData(jobId: bigint) {
     disputeCount: (Array.isArray(tuple) ? tuple[8] : tuple.disputeCount) as number,
     freelancerWinStreak: (Array.isArray(tuple) ? tuple[9] : tuple.freelancerWinStreak) as number,
     lastVerdictWinner: (Array.isArray(tuple) ? tuple[10] : tuple.lastVerdictWinner) as string,
-    pendingRequestId: (Array.isArray(tuple) ? tuple[11] : tuple.pendingRequestId) as bigint,
-    clientDisputeStaked: (Array.isArray(tuple) ? tuple[12] : tuple.clientDisputeStaked) as boolean,
-    freelancerDisputeStaked: (Array.isArray(tuple) ? tuple[13] : tuple.freelancerDisputeStaked) as boolean,
+    lastVerdictReason: (Array.isArray(tuple) ? tuple[11] : tuple.lastVerdictReason) as string,
+    pendingRequestId: (Array.isArray(tuple) ? tuple[12] : tuple.pendingRequestId) as bigint,
+    judgmentRequestIds: (Array.isArray(tuple) ? tuple[13] : tuple.judgmentRequestIds) as readonly bigint[],
+    clientDisputeStaked: (Array.isArray(tuple) ? tuple[14] : tuple.clientDisputeStaked) as boolean,
+    freelancerDisputeStaked: (Array.isArray(tuple) ? tuple[15] : tuple.freelancerDisputeStaked) as boolean,
   } : undefined;
 
   return { job, refetch, isLoading, isError, error };

@@ -18,7 +18,9 @@ export interface Job {
   disputeCount: number;
   freelancerWinStreak: number;
   lastVerdictWinner: string;
+  lastVerdictReason: string;
   pendingRequestId: bigint;
+  judgmentRequestIds: readonly bigint[];
   clientDisputeStaked: boolean;
   freelancerDisputeStaked: boolean;
 }
