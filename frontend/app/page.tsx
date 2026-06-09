@@ -186,53 +186,85 @@ export default function LandingPage() {
 
       {/* Main Page Layout */}
       <main className="flex-1">
-        {/* 1. HERO SECTION (Above fold pyramid) */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-6 text-center lg:text-left max-w-xl mx-auto"
-          >
+        {/* 1. HERO SECTION (Vercel/Linear Style Centered) */}
+        <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-40 flex flex-col items-center justify-center text-center overflow-visible">
+          {/* Subtle Blueprint Grid Background */}
+          <div className="absolute inset-0 z-[-1] pointer-events-none" style={{
+            backgroundImage: `linear-gradient(to right, rgba(37, 99, 235, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(37, 99, 235, 0.05) 1px, transparent 1px)`,
+            backgroundSize: '40px 40px',
+            maskImage: 'radial-gradient(ellipse at center, black 40%, transparent 80%)',
+            WebkitMaskImage: 'radial-gradient(ellipse at center, black 40%, transparent 80%)'
+          }} />
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
-              Symmetrical Escrow.<br />
-              <span className="text-primary">AI Resolved.</span>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="space-y-8 max-w-4xl mx-auto z-10"
+          >
+            <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-semibold text-primary mb-4">
+              <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse"></span>
+              Somnia Testnet Live
+            </div>
+
+            <h1 className="text-5xl sm:text-6xl lg:text-[5rem] font-extrabold tracking-tighter text-foreground leading-[1.05]">
+              Symmetrical Escrow. <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">Deterministic Resolution.</span>
             </h1>
 
-            <p className="lg:text-lg text-muted leading-relaxed">
-              Abita protects freelance transactions with trustless, self-executing escrows and deterministic, consensus-verified AI judges on Somnia Network.
+            <p className="text-lg sm:text-xl text-muted font-medium max-w-2xl mx-auto leading-relaxed">
+              Abita protects freelance transactions with trustless, self-executing escrows and consensus-verified AI judges. No human intermediates. No subjectivity.
             </p>
 
-            <div className="pt-4">
+            <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
               {isConnected ? (
                 <Link href="/dashboard">
                   <motion.div
-                    className="inline-flex items-center space-x-3 rounded-xl bg-primary px-8 py-4.5 text-base font-bold text-card hover:bg-primary-hover hover:shadow-lg transition-all duration-300 cursor-pointer"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="inline-flex items-center space-x-2 rounded-full bg-foreground px-8 py-4 text-base font-bold text-background shadow-xl shadow-foreground/10 transition-all duration-300 cursor-pointer"
                   >
-                    <span>Enter Escrow Dashboard</span>
+                    <span>Initialize Escrow</span>
                     <ArrowRight className="h-5 w-5" />
                   </motion.div>
                 </Link>
               ) : (
                 <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => connect({ connector: injected() })}
-                  className="inline-flex items-center space-x-3 rounded-xl bg-primary px-8 py-4.5 text-base font-bold text-card hover:bg-primary-hover hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className="inline-flex items-center space-x-2 rounded-full bg-foreground px-8 py-4 text-base font-bold text-background shadow-xl shadow-foreground/10 transition-all duration-300 cursor-pointer"
                 >
                   <Wallet className="h-5 w-5" />
-                  <span>Connect Wallet to Enter</span>
+                  <span>Connect Wallet</span>
                 </motion.button>
               )}
+              <Link href="https://somnia.network" target="_blank" rel="noopener noreferrer">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="inline-flex items-center space-x-2 rounded-full bg-white border border-border px-8 py-4 text-base font-bold text-foreground shadow-sm hover:border-primary/30 transition-all duration-300 cursor-pointer"
+                >
+                  <span>Read Documentation</span>
+                </motion.div>
+              </Link>
             </div>
           </motion.div>
 
+          {/* Floating Product Dashboard Visual */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="flex items-center justify-center"
+            initial={{ opacity: 0, y: 60 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
+            className="w-full max-w-5xl mx-auto mt-20 relative z-10"
           >
-            <HeroGraphic />
+            {/* Glow behind image */}
+            <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full transform scale-90 -z-10" />
+            <img 
+              src="/hero-dashboard.png" 
+              alt="Abita Dashboard UI" 
+              className="w-full h-auto rounded-[2rem] border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.1)] backdrop-blur-xl"
+            />
           </motion.div>
         </section>
 
