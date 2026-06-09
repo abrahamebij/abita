@@ -236,114 +236,149 @@ export default function LandingPage() {
           </motion.div>
         </section>
 
-        {/* 2. SPECIFIC TRUST METRICS BANNER */}
-        <section className="border-t border-b border-border bg-white py-10 shadow-inner">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <span className="text-3xl lg:text-4xl font-extrabold text-foreground block">1.0 STT</span>
-              <span className="text-xs uppercase tracking-wider text-muted font-semibold mt-1 block">Fixed Dispute Fee</span>
+        {/* 2. FLOATING TRUST METRICS BANNER */}
+        <section className="relative z-20 -mt-12 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="rounded-2xl border border-white/40 bg-white/70 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-border/50"
+          >
+            <div className="text-center px-4">
+              <span className="text-3xl lg:text-4xl font-extrabold text-foreground block drop-shadow-sm">1.0 STT</span>
+              <span className="text-xs uppercase tracking-widest text-primary font-bold mt-2 block">Fixed Dispute Fee</span>
             </div>
-            <div className="text-center">
-              <span className="text-3xl lg:text-4xl font-extrabold text-foreground block">100%</span>
-              <span className="text-xs uppercase tracking-wider text-muted font-semibold mt-1 block">On-Chain Audit Trail</span>
+            <div className="text-center px-4">
+              <span className="text-3xl lg:text-4xl font-extrabold text-foreground block drop-shadow-sm">100%</span>
+              <span className="text-xs uppercase tracking-widest text-primary font-bold mt-2 block">On-Chain Audit</span>
             </div>
-            <div className="text-center">
-              <span className="text-3xl lg:text-4xl font-extrabold text-foreground block">5.0s</span>
-              <span className="text-xs uppercase tracking-wider text-muted font-semibold mt-1 block">Somnia Blocktime</span>
+            <div className="text-center px-4">
+              <span className="text-3xl lg:text-4xl font-extrabold text-foreground block drop-shadow-sm">5.0s</span>
+              <span className="text-xs uppercase tracking-widest text-primary font-bold mt-2 block">Somnia Blocktime</span>
             </div>
-            <div className="text-center">
-              <span className="text-3xl lg:text-4xl font-extrabold text-foreground block">Max 5</span>
-              <span className="text-xs uppercase tracking-wider text-muted font-semibold mt-1 block">Appeals Escalation Cap</span>
+            <div className="text-center px-4">
+              <span className="text-3xl lg:text-4xl font-extrabold text-foreground block drop-shadow-sm">Max 5</span>
+              <span className="text-xs uppercase tracking-widest text-primary font-bold mt-2 block">Appeals Cap</span>
             </div>
-          </div>
+          </motion.div>
         </section>
 
-        {/* 3. DYNAMIC PROCESS neural TIMELINE */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center space-y-16">
-          <div className="max-w-xl mx-auto space-y-3">
-            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
+        {/* 3. DYNAMIC PROCESS TIMELINE */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 space-y-20 relative">
+          {/* Subtle background glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl aspect-square rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="text-center max-w-2xl mx-auto space-y-4"
+          >
+            <h2 className="text-3xl lg:text-5xl font-extrabold tracking-tight text-foreground">
               How Symmetrical Escrow Works
             </h2>
-            <p className="text-sm text-muted">
-              A robust 3-step pipeline guarantees absolute dispute resolution without human intermediates.
+            <p className="text-base lg:text-lg text-muted font-medium">
+              A robust 3-step pipeline guarantees absolute dispute resolution without human intermediates or subjective biases.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            <div className="bg-white rounded-2xl border border-border p-8 text-left space-y-4 shadow-sm hover:border-primary/20 transition-all duration-300">
-              <div className="flex h-12 w-12 rounded-xl bg-primary/10 text-primary items-center justify-center font-bold text-lg font-mono">
-                01
-              </div>
-              <h3 className="text-xl font-bold text-foreground">Escrow & Briefing</h3>
-              <p className="text-sm text-muted leading-relaxed">
-                The client locks the contract funds securely in the self-executing smart contract, explicitly detailing all job requirements.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+            {/* Connecting line for desktop */}
+            <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-primary/10 via-primary/30 to-primary/10 z-0" />
 
-            <div className="bg-white rounded-2xl border border-border p-8 text-left space-y-4 shadow-sm hover:border-primary/20 transition-all duration-300">
-              <div className="flex h-12 w-12 rounded-xl bg-primary/10 text-primary items-center justify-center font-bold text-lg font-mono">
-                02
-              </div>
-              <h3 className="text-xl font-bold text-foreground">Symmetrical Deposit</h3>
-              <p className="text-sm text-muted leading-relaxed">
-                If a qualitative dispute occurs, both parties deposit a flat 1.0 STT fee and submit their arguments directly to the contract.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-border p-8 text-left space-y-4 shadow-sm hover:border-primary/20 transition-all duration-300">
-              <div className="flex h-12 w-12 rounded-xl bg-primary/10 text-primary items-center justify-center font-bold text-lg font-mono">
-                03
-              </div>
-              <h3 className="text-xl font-bold text-foreground">Consensus Verdict</h3>
-              <p className="text-sm text-muted leading-relaxed">
-                Somnia AI consensus validators parse specifications, evaluate testimonies, and execute a deterministic settlement callback in seconds.
-              </p>
-            </div>
+            {[
+              { num: "01", title: "Escrow & Briefing", desc: "The client locks the contract funds securely in the self-executing smart contract, explicitly detailing all job requirements." },
+              { num: "02", title: "Symmetrical Deposit", desc: "If a qualitative dispute occurs, both parties deposit a flat 1.0 STT fee and submit their arguments directly to the contract." },
+              { num: "03", title: "Consensus Verdict", desc: "Somnia AI consensus validators parse specifications, evaluate testimonies, and execute a deterministic settlement callback in seconds." }
+            ].map((step, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: i * 0.2 }}
+                className="relative bg-white/80 backdrop-blur-md rounded-3xl border border-white p-8 text-center space-y-6 shadow-xl shadow-primary/[0.03] hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/20 transition-all duration-500 group"
+              >
+                <div className="mx-auto flex h-16 w-16 rounded-2xl bg-gradient-to-br from-primary-light to-white border border-primary/10 text-primary items-center justify-center font-bold text-2xl font-mono shadow-inner group-hover:scale-110 transition-transform duration-500">
+                  {step.num}
+                </div>
+                <h3 className="text-xl font-extrabold text-foreground">{step.title}</h3>
+                <p className="text-sm text-muted leading-relaxed font-medium">
+                  {step.desc}
+                </p>
+              </motion.div>
+            ))}
           </div>
         </section>
 
-        {/* 4. OUTCOME-BASED BENEFITS GRID */}
-        <section className="bg-white border-t border-b border-border py-24 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-            <div className="text-center max-w-xl mx-auto space-y-3">
-              <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
-                Engineered for Certainty
-              </h2>
-              <p className="text-sm text-muted">
-                Ditch expensive legal fees, subjective client rejections, and infinite delivery waitlists.
-              </p>
-            </div>
+        {/* 4. ASYMMETRIC BENTO GRID (ENGINEERED FOR CERTAINTY) */}
+        <section className="bg-foreground py-32 text-background relative overflow-hidden">
+          {/* Dark mode context within light theme for extreme contrast */}
+          <div className="absolute top-0 right-0 w-full max-w-4xl aspect-square rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="space-y-4 text-left p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Brain className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Consensus-Verified Verdicts</h3>
-                <p className="text-sm text-muted leading-relaxed">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16 relative z-10">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-left max-w-xl space-y-4"
+            >
+              <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white">
+                Engineered for <span className="text-primary-light">Certainty</span>
+              </h2>
+              <p className="text-lg text-slate-300 font-medium">
+                Ditch expensive legal fees, subjective client rejections, and infinite delivery waitlists. Absolute architectural parity.
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-6 h-auto md:h-[600px]">
+              
+              {/* Large span card */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="md:col-span-2 md:row-span-1 rounded-3xl bg-white/5 border border-white/10 p-10 flex flex-col justify-end relative overflow-hidden group hover:border-primary/50 transition-colors duration-500"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <Brain className="h-10 w-10 text-primary-light mb-6" />
+                <h3 className="text-2xl font-bold text-white mb-3">Consensus-Verified Verdicts</h3>
+                <p className="text-slate-400 font-medium max-w-md">
                   Decisions are evaluated off-chain by a decentralized network of validation nodes and resolved back on-chain, ensuring 100% auditable impartiality.
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="space-y-4 text-left p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Scale className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Escalation Win Streaks</h3>
-                <p className="text-sm text-muted leading-relaxed">
-                  Escrow releases automatically upon two consecutive freelancer wins. Maximum 5 appeals guarantees finality without endless retries.
+              {/* Tall side card */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="md:col-span-1 md:row-span-2 rounded-3xl bg-gradient-to-b from-primary/10 to-transparent border border-primary/20 p-10 flex flex-col items-start relative overflow-hidden group"
+              >
+                <Scale className="h-10 w-10 text-primary-light mb-8" />
+                <h3 className="text-2xl font-bold text-white mb-4">Escalation Win Streaks</h3>
+                <p className="text-slate-400 font-medium leading-relaxed">
+                  Escrow releases automatically upon two consecutive freelancer wins. Maximum 5 appeals guarantees finality without endless retries. The absolute end of scope creep.
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="space-y-4 text-left p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Trustless Escrow Reserves</h3>
-                <p className="text-sm text-muted leading-relaxed">
-                  Contract payouts are completely self-executing. Neither party can unilaterally withdraw locked funds, creating absolute parity.
+              {/* Wide bottom card */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="md:col-span-2 md:row-span-1 rounded-3xl bg-white/5 border border-white/10 p-10 flex flex-col justify-end relative overflow-hidden group hover:border-white/20 transition-colors duration-500"
+              >
+                <ShieldCheck className="h-10 w-10 text-white mb-6" />
+                <h3 className="text-2xl font-bold text-white mb-3">Trustless Escrow Reserves</h3>
+                <p className="text-slate-400 font-medium max-w-lg">
+                  Contract payouts are completely self-executing. Neither party can unilaterally withdraw locked funds, creating absolute parity and total financial security.
                 </p>
-              </div>
+              </motion.div>
+
             </div>
           </div>
         </section>
@@ -353,41 +388,53 @@ export default function LandingPage() {
           <MarketplaceTeaser />
         </section>
 
-        {/* 5. OBJECTION HANDLING & FINAL HIGH-CONVERSION CTA */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="rounded-3xl border border-primary/20 bg-primary-light p-12 text-center space-y-6 max-w-4xl mx-auto shadow-sm relative overflow-hidden">
-            {/* Concentric light background glow (Electric Blue) */}
-            <div className="absolute inset-0 bg-primary/5 blur-3xl -z-10" />
+        {/* 5. FINAL HIGH-CONVERSION CTA */}
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="rounded-[2.5rem] p-1 bg-gradient-to-br from-primary via-blue-400 to-primary-light shadow-2xl shadow-primary/20 relative"
+          >
+            {/* Inner Content */}
+            <div className="rounded-[2.25rem] bg-card p-12 md:p-16 text-center space-y-8 relative overflow-hidden">
+              <div className="absolute -top-32 -left-32 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground max-w-lg mx-auto leading-tight">
-              Ready to Lock Symmetrical Protection?
-            </h2>
+              <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground max-w-2xl mx-auto leading-tight relative z-10">
+                Ready to Lock Symmetrical Protection?
+              </h2>
 
-            <p className="text-sm text-muted max-w-md mx-auto">
-              Fixed 1.0 STT dispute fee. 100% decentralized. Start launching and securing freelance escrow agreements instantly on Somnia Testnet.
-            </p>
+              <p className="text-base lg:text-lg text-muted font-medium max-w-lg mx-auto relative z-10">
+                Fixed 1.0 STT dispute fee. 100% decentralized. Start launching and securing freelance escrow agreements instantly on Somnia Testnet.
+              </p>
 
-            <div className="pt-4">
-              {isConnected ? (
-                <Link href="/dashboard">
-                  <motion.div
-                    className="inline-flex items-center space-x-2 rounded-xl bg-primary px-8 py-4.5 text-base font-bold text-card hover:bg-primary-hover hover:shadow-lg transition-all duration-300 cursor-pointer"
+              <div className="pt-6 relative z-10">
+                {isConnected ? (
+                  <Link href="/dashboard">
+                    <motion.div
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="inline-flex items-center space-x-3 rounded-full bg-primary px-10 py-5 text-base font-bold text-card shadow-lg shadow-primary/30 transition-all duration-300 cursor-pointer"
+                    >
+                      <span>Go to Dashboard</span>
+                      <ArrowRight className="h-5 w-5" />
+                    </motion.div>
+                  </Link>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => connect({ connector: injected() })}
+                    className="inline-flex items-center space-x-3 rounded-full bg-foreground px-10 py-5 text-base font-bold text-background shadow-xl shadow-foreground/20 transition-all duration-300 cursor-pointer"
                   >
-                    <span>Go to Dashboard</span>
-                    <ArrowRight className="h-5 w-5" />
-                  </motion.div>
-                </Link>
-              ) : (
-                <motion.button
-                  onClick={() => connect({ connector: injected() })}
-                  className="inline-flex items-center space-x-2 rounded-xl bg-primary px-8 py-4.5 text-base font-bold text-card hover:bg-primary-hover hover:shadow-lg transition-all duration-300 cursor-pointer"
-                >
-                  <Wallet className="h-5 w-5" />
-                  <span>Connect Wallet to Begin</span>
-                </motion.button>
-              )}
+                    <Wallet className="h-5 w-5" />
+                    <span>Connect Wallet to Begin</span>
+                  </motion.button>
+                )}
+              </div>
             </div>
-          </div>
+          </motion.div>
         </section>
       </main>
 
