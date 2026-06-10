@@ -203,10 +203,6 @@ export default function LandingPage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="space-y-8 max-w-4xl mx-auto z-10"
           >
-            <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-semibold text-primary mb-4">
-              <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse"></span>
-              Somnia Testnet Live
-            </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-[5rem] font-extrabold tracking-tighter text-foreground leading-[1.05]">
               Symmetrical Escrow. <br className="hidden sm:block" />
