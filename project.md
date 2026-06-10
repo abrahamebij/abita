@@ -37,6 +37,7 @@ A trustless freelance escrow platform where payments are locked on-chain and dis
 - Config is at `contracts/hardhat.config.ts`
 - Deploy script: `scripts/deploy.ts` — deploys with `platformAddress` and `treasuryAddress` (currently deployer wallet)
 - After deploy: update `ABICORE_CONTRACT_ADDRESS` in `frontend/lib/config.ts`
+- Also update `ABICORE_ADDRESS` in `.env` for the keeper bot
 
 ### Job State Machine
 
@@ -56,21 +57,44 @@ Open → Delivered → Disputed → PendingClientChoice → Closed
 ### Job Struct Fields
 
 ```solidity
-address  client
-address  freelancer
-uint256  escrowAmount          // original escrow — never reduced (platform fee comes from Abita's cut)
-string   requirements
-string   deliveryNote
-string   clientArgument
-string   freelancerArgument
+address   client
+address   freelancer
+uint256   escrowAmount            // original escrow — never reduced (platform fee comes from Abita's cut)
+string    requirements
+string    deliveryNote
+string    clientArgument
+string    freelancerArgument
 JobStatus status
-uint8    disputeCount          // increments each raiseDispute call, max 5
-uint8    freelancerWinStreak   // consecutive freelancer wins, resets on client win
-address  lastVerdictWinner     // non-zero after any verdict — key signal for frontend
-uint256  pendingRequestId      // Somnia request ID, reset to 0 after callback fires
-bool     clientDisputeStaked
-bool     freelancerDisputeStaked
+uint8     disputeCount            // increments each raiseDispute call, max 5
+uint8     freelancerWinStreak     // consecutive freelancer wins, resets on client win
+address   lastVerdictWinner       // non-zero after any verdict — key signal for frontend
+string    lastVerdictReason       // AI-written one-sentence explanation for the verdict
+uint256   pendingRequestId        // Somnia request ID, reset to 0 after callback fires
+uint256[] judgmentRequestIds      // ALL Somnia request IDs ever issued — one per round, never cleared
+bool      clientDisputeStaked
+bool      freelancerDisputeStaked
 ```
+
+**Important field order for ABI/hook mapping (0-indexed):**
+
+| Index | Field |
+|---|---|
+| 0 | client |
+| 1 | freelancer |
+| 2 | escrowAmount |
+| 3 | requirements |
+| 4 | deliveryNote |
+| 5 | clientArgument |
+| 6 | freelancerArgument |
+| 7 | status |
+| 8 | disputeCount |
+| 9 | freelancerWinStreak |
+| 10 | lastVerdictWinner |
+| 11 | lastVerdictReason |
+| 12 | pendingRequestId |
+| 13 | judgmentRequestIds |
+| 14 | clientDisputeStaked |
+| 15 | freelancerDisputeStaked |
 
 ### Private Mappings
 
@@ -88,8 +112,8 @@ mapping(uint256 => uint256) platformFeeUsed   // jobId → STT paid to Somnia pl
 | `approveDelivery(jobId)` | Client | status=Delivered | Releases escrow to freelancer |
 | `stakeForDispute(jobId)` | Either | status=Delivered or Open | Requires exactly 1 STT. Both must stake to trigger Disputed |
 | `submitArgument(jobId, arg)` | Either | status=Disputed | Stores argument per party |
-| `judgeDispute(jobId)` | Anyone | status=Disputed, both args submitted | Increments disputeCount, calls Somnia AI, stores platformFeeUsed |
-| `handleResponse(requestId, responses[], status, details)` | Somnia platform only | Async callback | Applies verdict, pays treasury, settles or resets |
+| `judgeDispute(jobId)` | Anyone | status=Disputed, both args submitted | Increments disputeCount, calls Somnia AI, stores platformFeeUsed, pushes to judgmentRequestIds |
+| `handleResponse(requestId, responses[], status, details)` | Somnia platform only | Async callback | Parses JSON, applies verdict, stores reason, pays treasury, settles or resets |
 | `closeJob(jobId)` | Client | status=PendingClientChoice | Refunds escrow to client |
 | `retryJob(jobId)` | Client | status=PendingClientChoice | Resets to Open, clears delivery/args/stakes |
 | `getJob(jobId)` | Anyone | Any | Returns full Job struct |
@@ -136,12 +160,31 @@ uint256 public constant SUBCOMMITTEE_SIZE = 3;
 uint256 public constant LLM_COST_PER_AGENT = 0.07 ether;
 ```
 
-- `judgeDispute` builds a prompt from requirements + deliveryNote + both arguments
-- System prompt instructs the model to return ONLY the winning wallet address (hex)
-- `allowedValues` constrains the output to either client or freelancer address
+**AI now returns JSON, not a bare address:**
+
+```json
+{"winner":"0x4bEAB1d04cdcc6f73c24Ec643e1326C7F3756A88","reason":"The freelancer delivered a blue palette wordmark as specified; the minimal style requirement is subjective and the client did not define it further."}
+```
+
+- `allowedValues` is an **empty array** — the response is JSON and cannot be constrained to two address values
 - `chainOfThought = true` — full reasoning is recorded on-chain (audit trail)
-- `handleResponse` decodes `responses[0].result` as `abi.decode(..., (string))` — NOT a raw string
-- If consensus status is not `Success`, the job stays in Disputed (retriable)
+- `_extractJsonField(json, key)` — pure Solidity helper parses the JSON string by scanning for `"key":"` pattern and reading until the closing quote
+- `winnerStr` = extracted `winner` field → compared via `keccak256` to client/freelancer hex strings
+- `lastVerdictReason` = extracted `reason` field → stored permanently on the Job struct
+- If JSON parsing fails (malformed response), falls back to freelancer as winner, stores full raw response as reason
+- `judgmentRequestIds.push(requestId)` — every round's Somnia request ID is permanently recorded
+
+### `_extractJsonField` Helper
+
+```solidity
+function _extractJsonField(string memory json, string memory key)
+    internal pure returns (string memory)
+```
+
+- Builds search pattern `"key":"` and scans raw bytes
+- Reads value bytes until unescaped closing quote
+- Returns empty string if key not found
+- Note: `match` is a reserved keyword in Solidity — variable is named `found`
 
 ### handleResponse Signature (must match exactly)
 
@@ -155,6 +198,35 @@ function handleResponse(
 ```
 
 The `Response` and `AgentRequest` structs come from `contracts/interfaces/ISomniaAgents.sol`.
+
+---
+
+## Autonomous Keeper Bot
+
+**File:** `scripts/keeper.ts`
+
+**Purpose:** Watches on-chain for jobs in `status=Disputed` where both arguments are submitted and no AI request is pending. Automatically calls `judgeDispute` — this makes Abita fully autonomous (no human needs to trigger judgment).
+
+**Why this matters:** Somnia's hackathon "Autonomous Performance" criterion specifically looks for systems that operate without manual intervention. The keeper transforms Abita from "AI-assisted" to "fully autonomous".
+
+**Run:** `npm run keeper`
+
+**How it works:**
+1. Polls every 30 seconds
+2. Reads `getTotalJobs()`, then `getJob(i)` for each job
+3. Triggers `judgeDispute(i)` when: `status === 2 (Disputed)` AND `clientArgument !== ""` AND `freelancerArgument !== ""` AND `pendingRequestId === 0n`
+4. The `pendingRequestId === 0` guard prevents double-firing if a request is already in flight
+5. Logs all actions to console with timestamps
+
+**Environment:**
+
+`.env` at project root requires:
+```
+PRIVATE_KEY=0x...    # deployer/keeper wallet private key (with 0x prefix)
+ABICORE_ADDRESS=0x... # deployed contract address
+```
+
+**The keeper's inline ABI** (in `scripts/keeper.ts`) must stay in sync with `frontend/lib/abi.ts` — any new Job struct fields must be added to both.
 
 ---
 
@@ -185,7 +257,7 @@ Green:         #10B981   (freelancer wins, approvals)
 
 Display font:  Fraunces (serif)
 Body font:     Inter
-Mono font:     JetBrains Mono (addresses, tx hashes)
+Mono font:     JetBrains Mono (addresses, tx hashes, AI reasoning)
 ```
 
 ### Pages
@@ -195,7 +267,7 @@ Mono font:     JetBrains Mono (addresses, tx hashes)
 | `/` | Homepage — job feed, wallet connect, MarketplaceTeaser |
 | `/post` | Post a new job |
 | `/job/[id]` | Job detail — delivery, dispute flow, argument chat |
-| `/job/[id]/verdict` | Verdict reveal — winner card, client choice, audit link |
+| `/job/[id]/verdict` | Verdict reveal — winner card, AI reasoning, per-round receipts, client choice |
 
 ### Key Components
 
@@ -205,19 +277,49 @@ Mono font:     JetBrains Mono (addresses, tx hashes)
 | `DisputeFlow` | Approve/dispute buttons. Re-appeal mode when `status=0 && hasDelivery`. Approve is disabled in re-appeal (freelancer must re-confirm first) |
 | `DisputeArguments` | Argument submission form + chat history timeline from localStorage |
 | `ClientChoice` | Close vs Retry slide-in cards (status=3 only) |
-| `VerdictReveal` | Winner card with Client/Freelancer badge, audit receipt button |
+| `VerdictReveal` | Winner card with Client/Freelancer badge, AI reasoning block, per-round receipt list |
 | `MarketplaceTeaser` | "Coming Soon" section on homepage |
 
-### Verdict Detection
+### Verdict Page — Key Logic
 
+**Verdict detection:**
 ```ts
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const hasVerdict = !!contractJob &&
   !!job.lastVerdictWinner &&
   job.lastVerdictWinner.toLowerCase() !== ZERO_ADDRESS;
 ```
+**Do NOT use `job.status` alone** — after a freelancer single win, status resets to Open (0) but `lastVerdictWinner` is set.
 
-**Do NOT use `job.status` alone** — after a freelancer single win, status resets to Open (0) but `lastVerdictWinner` is set. Status-based detection would miss the verdict.
+**Request ID display (deliberating screen):**
+```tsx
+{job.pendingRequestId !== 0n && (
+  <span>#{job.pendingRequestId.toString()}</span>
+)}
+```
+`pendingRequestId` is non-zero while the Somnia request is in flight. After callback fires, it resets to 0.
+
+**AI Reasoning block:**
+```tsx
+{job.lastVerdictReason && (
+  <p className="font-mono italic">"{job.lastVerdictReason}"</p>
+)}
+```
+Fades in 0.4s after the winner card. Displays the AI's one-sentence justification in mono italic.
+
+**Audit receipt list (per round):**
+```tsx
+const requestIds = (job.judgmentRequestIds ?? []).map(id => id.toString());
+
+{requestIds.map((id, idx) => (
+  <Link href={`https://agents.testnet.somnia.network/receipts/${id}`}>
+    Round {idx + 1} — #{id}
+  </Link>
+))}
+```
+- Sourced **directly from the contract** — no localStorage, no `getLogs`, no block range issues
+- One row per dispute round, each linking to its Somnia audit receipt
+- `judgmentRequestIds` is a permanent on-chain array — always available regardless of when the page is loaded
 
 ### Re-appeal State (status=0 + delivery exists)
 
@@ -231,21 +333,22 @@ Once freelancer re-submits → status=Delivered → approve becomes active.
 
 ### localStorage — Namespace
 
-All localStorage keys are prefixed with the first 8 chars of the contract address to prevent stale data bleeding across deployments:
+All localStorage keys (argument history) are prefixed with the first 8 chars of the contract address to prevent stale data bleeding across deployments:
 
 ```ts
 const contractSlug = ABICORE_CONTRACT_ADDRESS.slice(2, 10).toLowerCase();
 // e.g. "abita_0654943e_job_1_history"
-//      "abita_0654943e_job_1_last_request_id"
 ```
 
 After a redeploy with a new address, old keys are automatically orphaned.
+
+**The verdict page no longer uses localStorage at all** — `lastVerdictReason` and `judgmentRequestIds` are read directly from the contract.
 
 ### Hooks
 
 | Hook | What it does |
 |---|---|
-| `useJobData` | Reads full Job struct. Polls every 5s when status=Disputed |
+| `useJobData` | Reads full Job struct. Polls every 5s when status=Disputed. Maps tuple by field name (wagmi returns named fields) with index fallback |
 | `usePostJob` | Calls `postJob` with escrow value |
 | `useSubmitDelivery` | Calls `submitDelivery` |
 | `useApproveDelivery` | Calls `approveDelivery` |
@@ -254,6 +357,13 @@ After a redeploy with a new address, old keys are automatically orphaned.
 | `useJudgeDispute` | Calls `judgeDispute` (non-payable, uses staked funds on-chain) |
 | `useCloseJob` | Calls `closeJob` |
 | `useRetryJob` | Calls `retryJob` |
+
+**`useJobData` field mapping must stay in sync with the struct.** If new fields are added to the contract, update:
+1. `contracts/AbiCore.sol` — struct definition
+2. `frontend/lib/abi.ts` — `getJob` outputs tuple
+3. `frontend/lib/types.ts` — `Job` interface
+4. `frontend/hooks/useJobData.ts` — tuple index mapping
+5. `scripts/keeper.ts` — inline ABI `getJob` components
 
 ---
 
@@ -271,6 +381,11 @@ After a redeploy with a new address, old keys are automatically orphaned.
 | Old history on new contract | localStorage keyed by jobId only | Keys now prefixed with contract address slug |
 | DisputeProgress pip states wrong | `currentDispute=1` showed pip 1 as active, not completed | Refactored to `completedCount` + `isDisputeActive` props; done pips show ✅ |
 | Platform fee from escrow | `job.escrowAmount -= totalDeposit` in judgeDispute | Removed; fee tracked in `platformFeeUsed` mapping, deducted from treasury |
+| `auditRequestId` not showing | `getLogs fromBlock:0n` rejected by Somnia RPC (range too large) | Removed getLogs entirely; `judgmentRequestIds[]` on struct is the source of truth |
+| Keeper private key error | `.env` key had `0x` prefix but viem expected raw hex | Strip `0x` prefix before passing to `privateKeyToAccount`: `key.startsWith('0x') ? key.slice(2) : key` |
+| Keeper ABI mismatch | Keeper inline ABI was missing `lastVerdictReason` and `judgmentRequestIds` | Added both fields at correct positions (11 and 13) |
+| Solidity `match` keyword error | `match` is a reserved keyword in Solidity 0.8.x | Renamed to `found` in `_extractJsonField` helper |
+| TypeScript type errors on new fields | `Job` interface and `useJobData` mapping only had 14 fields | Added `lastVerdictReason` and `judgmentRequestIds` to types.ts, useJobData.ts, and both fallback objects |
 
 ---
 
@@ -280,8 +395,10 @@ After a redeploy with a new address, old keys are automatically orphaned.
 2. `npm run deploy` — deploys to Somnia testnet
 3. Copy new contract address from output
 4. Update `ABICORE_CONTRACT_ADDRESS` in `frontend/lib/config.ts`
-5. Clear browser localStorage keys with old contract prefix (or just use a new browser profile)
-6. Verify `LLM_AGENT_ID` constant matches the actual agent ID on `https://agents.testnet.somnia.network`
+5. Update `ABICORE_ADDRESS` in `.env` (for keeper bot)
+6. Clear browser localStorage keys with old contract prefix (or use a fresh browser profile)
+7. Verify `LLM_AGENT_ID` constant matches the actual agent ID on `https://agents.testnet.somnia.network`
+8. Run `npm run keeper` to start the autonomous judgment bot
 
 ---
 
@@ -290,10 +407,11 @@ After a redeploy with a new address, old keys are automatically orphaned.
 `.env` at project root (never committed):
 
 ```
-PRIVATE_KEY=your_deployer_wallet_private_key
+PRIVATE_KEY=0x...          # deployer/keeper wallet private key (with 0x prefix)
+ABICORE_ADDRESS=0x...      # deployed AbiCore contract address
 ```
 
-Used by `hardhat.config.ts` to sign deployment transactions on Somnia testnet.
+`PRIVATE_KEY` is used by `hardhat.config.ts` for deployment and by `keeper.ts` for signing `judgeDispute` transactions.
 
 ---
 
@@ -308,6 +426,7 @@ abita/
 │   └── hardhat.config.ts
 ├── scripts/
 │   ├── deploy.ts                 ← Deploys AbiCore
+│   ├── keeper.ts                 ← Autonomous keeper bot (watches + auto-judges disputes)
 │   ├── get-fee.ts                ← Queries getRequestDeposit()
 │   ├── debug-judge.ts            ← Debug AI judging
 │   └── test-flow.ts              ← End-to-end simulation
@@ -316,7 +435,7 @@ abita/
 │   │   ├── page.tsx              ← Homepage + MarketplaceTeaser
 │   │   ├── post/page.tsx         ← Post a job
 │   │   ├── job/[id]/page.tsx     ← Job detail
-│   │   └── job/[id]/verdict/page.tsx ← Verdict reveal
+│   │   └── job/[id]/verdict/page.tsx ← Verdict reveal (winner, reason, receipts)
 │   ├── components/
 │   │   ├── DisputeProgress.tsx
 │   │   ├── DisputeFlow.tsx
@@ -327,9 +446,9 @@ abita/
 │   │   └── ui/
 │   ├── hooks/                    ← One hook per contract function
 │   └── lib/
-│       ├── abi.ts                ← AbiCore ABI (must be updated after redeploy if sig changed)
+│       ├── abi.ts                ← AbiCore ABI (must match contract struct exactly)
 │       ├── config.ts             ← Chain config + ABICORE_CONTRACT_ADDRESS
-│       └── types.ts
+│       └── types.ts              ← Job interface (must match struct field order)
 ├── directives/
 │   ├── contracts.md
 │   ├── frontend.md
