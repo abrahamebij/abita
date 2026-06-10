@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Brain, ShieldCheck, Scale, Sparkles, Wallet } from "lucide-react";
+import { ArrowRight, Brain, ShieldCheck, Scale, Sparkles, Wallet, PlayCircle } from "lucide-react";
 import { useAccount, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
 import MarketplaceTeaser from "@/components/MarketplaceTeaser";
@@ -236,13 +236,14 @@ export default function LandingPage() {
                   <span>Connect Wallet</span>
                 </motion.button>
               )}
-              <Link href="https://somnia.network" target="_blank" rel="noopener noreferrer">
+              <Link href="/demo">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="inline-flex items-center space-x-2 rounded-full bg-white border border-border px-8 py-4 text-base font-bold text-foreground shadow-sm hover:border-primary/30 transition-all duration-300 cursor-pointer"
                 >
-                  <span>Read Documentation</span>
+                  <PlayCircle className="h-5 w-5 text-primary" />
+                  <span>Watch Demo</span>
                 </motion.div>
               </Link>
             </div>
