@@ -7,6 +7,7 @@ import { ArrowRight, Brain, ShieldCheck, Scale, Sparkles, Wallet } from "lucide-
 import { useAccount, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
 import MarketplaceTeaser from "@/components/MarketplaceTeaser";
+import Hero3D from "@/components/Hero3D";
 
 /**
  * @notice Premium Custom Animated Hero Graphic
@@ -251,20 +252,15 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Floating Product Dashboard Visual */}
+          {/* Interactive 3D Consensus Core */}
           <motion.div
             initial={{ opacity: 0, y: 60 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-            className="w-full max-w-5xl mx-auto mt-20 relative z-10"
+            className="w-full max-w-5xl mx-auto mt-10 relative z-10"
           >
-            {/* Glow behind image */}
-            <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full transform scale-90 -z-10" />
-            <img 
-              src="/hero-dashboard.png" 
-              alt="Abita Dashboard UI" 
-              className="w-full h-auto rounded-[2rem] border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.1)] backdrop-blur-xl"
-            />
+            <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full transform scale-75 -z-10" />
+            <Hero3D />
           </motion.div>
         </section>
 
