@@ -1,6 +1,5 @@
 <div align="center">
   
-
   <h1>Abita</h1>
   <p><strong>On-chain AI dispute resolution for the trustless freelance economy.</strong></p>
 
@@ -16,9 +15,6 @@
   <img src="https://img.shields.io/badge/AI-Somnia_Agentic_L1-10b981?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Framework-Next.js_16-black?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Contract-Solidity-363636?style=for-the-badge" />
-
-<br />
-
 </div>
 
 ---
@@ -190,24 +186,70 @@ If a freelancer wins two consecutive disputes on the same job, Abita automatical
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js 18+
+- A Somnia Testnet wallet funded with STT — [get STT from the faucet](https://cloud.google.com/application/web3/faucet/somnia/shannon)
+- MetaMask or any EVM-compatible wallet
+
+### 1. Clone the repository
+
 ```bash
-# Clone
 git clone https://github.com/abrahamebij/abita
 cd abita
+```
 
-# Install dependencies
+### 2. Install dependencies
+
+```bash
 npm install
+```
 
-# Configure environment
-cp .env.example .env
-# Fill in: NEXT_PUBLIC_CONTRACT_ADDRESS, PRIVATE_KEY (for keeper bot)
+### 3. Configure environment variables
 
-# Run the frontend
+```bash
+cp .env.example .env.local
+```
+
+Open `.env.local` and fill in the following:
+
+```env
+# Deployed AbiCore contract address on Somnia Testnet
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x36471F4a5054886fdA2B9D8f08436d0662d06907
+
+# Keeper bot wallet private key (never expose this publicly)
+PRIVATE_KEY=your_keeper_wallet_private_key
+```
+
+### 4. Add Somnia Testnet to your wallet
+
+| Field | Value |
+|---|---|
+| Network Name | Somnia Testnet |
+| RPC URL | `https://api.infra.testnet.somnia.network/` |
+| Chain ID | `50312` |
+| Currency Symbol | `STT` |
+| Block Explorer | `https://shannon-explorer.somnia.network` |
+
+### 5. Run the frontend
+
+```bash
+cd frontend
+npm install
 npm run dev
+```
 
-# Run the keeper bot (in a separate terminal)
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 6. Run the keeper bot
+
+Back in the root directory, open a separate terminal:
+
+```bash
 npm run keeper
 ```
+
+The keeper bot will scan for jobs in `Disputed` status every 30 seconds and autonomously call `judgeDispute` — no manual intervention needed.
 
 ---
 
@@ -223,6 +265,6 @@ npm run keeper
 
 ## Built For
 
-**[Somnia Agentathon](https://somnia.network/)** — Build the most novel and high-impact agent-driven application on Somnia.
+**[Somnia Agentathon](https://www.encodeclub.com/programmes/agentathon)** — Build the most novel and high-impact agent-driven application on Somnia.
 
 Built by **Abraham Ebijuni**
