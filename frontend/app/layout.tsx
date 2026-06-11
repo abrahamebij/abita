@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "../components/Providers";
+import NextTopLoader from 'nextjs-toploader';
 
 // Configure Next.js font loading per guide specifications
 const inter = Inter({
@@ -35,6 +36,7 @@ export default function RootLayout({
           {children}
         </Providers>
         <Toaster richColors position="top-right" />
+           <NextTopLoader  color="#2563EB" height={4} showSpinner={false} shadow="none"/>
       </body>
     </html>
   );
