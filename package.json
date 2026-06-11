@@ -4,10 +4,11 @@
   "description": "Smart contracts for Abita dispute resolution platform on Somnia Network",
   "main": "index.js",
   "scripts": {
-    "compile": "hardhat compile --config contracts/hardhat.config.ts",
-    "test": "hardhat test --config contracts/hardhat.config.ts",
-    "deploy": "hardhat run scripts/deploy.ts --network somnia --config contracts/hardhat.config.ts",
-    "get-fee": "hardhat run scripts/get-fee.ts --network somnia --config contracts/hardhat.config.ts",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.ts --network somnia",
+    "get-fee": "hardhat run scripts/get-fee.ts --network somnia",
+    "flatten": "hardhat flatten contracts/AbiCore.sol > AbiCore_flat.sol",
     "keeper": "tsx scripts/keeper.ts"
   },
   "keywords": [],
