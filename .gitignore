@@ -12,6 +12,10 @@ coverage/
 coverage.json
 hardhat-network-mine/
 
+# Generated verification files (run `npm run flatten` to regenerate)
+AbiCore_flat.sol
+AbiCore_standard_input.json
+
 # Next.js build output
 frontend/.next/
 frontend/out/
