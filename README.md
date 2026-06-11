@@ -31,7 +31,7 @@ Centralized arbitration is slow, expensive, and biased. Peer resolution is a pop
 
 ## What is Abita?
 
-Abita is a trustless freelance escrow platform where disputes are resolved by a committee of three AI judges — running natively on the Somnia Agentic L1 — who independently evaluate both sides and deliver a binding verdict, on-chain, with full written reasoning.
+Abita is a trustless freelance escrow platform where disputes are resolved by a subcommittee of three AI validators — running natively on the Somnia Agentic L1 — who independently evaluate both sides and deliver a binding consensus verdict, on-chain, with full written reasoning.
 
 <img src="https://github.com/user-attachments/assets/833d4afc-30f8-4867-afe2-921a22572fd3" alt="Abita — On-chain AI Dispute Resolution" width="100%" />
 
@@ -51,7 +51,7 @@ flowchart TD
     C -->|Dispute| E["⚖️ Both parties stake 1 STT"]
     E --> F["📝 Both submit arguments on-chain"]
     F --> G["🤖 Keeper bot detects dispute\nCalls judgeDispute autonomously"]
-    G --> H["🧠 3 AI judges on Somnia\nIndependently read all arguments"]
+    G --> H["🧠 Somnia AI subcommittee\nIndependently reads all arguments"]
     H --> I["📜 Consensus verdict + full reasoning\nWritten permanently on-chain"]
     I --> J{"Winner"}
     J -->|Freelancer wins| L{"2x streak?"}
@@ -69,10 +69,11 @@ stateDiagram-v2
     [*] --> Open : postJob()
     Open --> Delivered : submitDelivery()
     Delivered --> Closed : approveDelivery()
-    Delivered --> Disputed : raiseDispute()
+    Delivered --> Disputed : stakeForDispute()
     Disputed --> PendingClientChoice : judgeDispute()\nAI verdict received
     PendingClientChoice --> Closed : closeJob() or 2x streak
-    PendingClientChoice --> Disputed : requestRevision()\n[dispute count < 5]
+    PendingClientChoice --> Open : retryJob()\n[dispute count < 5]
+    Open --> Disputed : stakeForDispute()\n[re-appeal after retry]
     Closed --> [*]
 ```
 
@@ -84,14 +85,14 @@ Abita is not a platform with AI bolted on. It is built ground-up on Somnia's Age
 
 ### The AI Subcommittee
 
-When a dispute is raised, Abita invokes three independent AI agents on the Somnia network. Each agent receives the complete context in a single structured prompt:
+When a dispute is raised, Abita invokes a subcommittee of three AI validators on the Somnia network. The subcommittee receives the complete context in a single structured prompt:
 
 - The original job requirements
 - The freelancer's delivery note
 - The client's dispute argument
 - The freelancer's counter-argument
 
-Each judge independently produces a structured verdict:
+The validators independently evaluate the case and return a consensus verdict with full written reasoning:
 
 ```json
 {
@@ -100,7 +101,7 @@ Each judge independently produces a structured verdict:
 }
 ```
 
-The three verdicts are compared. The consensus winner is paid. The full reasoning from all three judges is written permanently to the Somnia blockchain — auditable by anyone, forever, via the Somnia Agent Explorer.
+The consensus winner is paid. The full reasoning is written permanently to the Somnia blockchain — auditable by anyone, forever, via the Somnia Agent Explorer.
 
 ### Constrained Output — A Novel Use of Somnia Primitives
 
@@ -152,7 +153,7 @@ If a freelancer wins two consecutive disputes on the same job, Abita automatical
 | # | Innovation | Detail |
 |---|---|---|
 | 1 | **Binding AI verdicts** | Probabilistic AI constrained into deterministic contract execution via structured JSON output |
-| 2 | **On-chain reasoning audit** | Full AI reasoning from all three judges stored permanently on Somnia — not just the outcome |
+| 2 | **On-chain reasoning audit** | Full AI reasoning stored permanently on Somnia — not just the outcome |
 | 3 | **Autonomous de-escalation** | Streak mechanic auto-closes jobs after 2 consecutive freelancer wins — no human action required |
 | 4 | **Permissionless AI invocation** | `judgeDispute` is callable by any address — no admin gate, fully censorship-resistant |
 | 5 | **Keeper-driven autonomy** | End-to-end autonomous loop — zero human intervention after argument submission |
@@ -202,31 +203,33 @@ cd abita
 ### 2. Install dependencies
 
 ```bash
+# Root — contracts + keeper bot
 npm install
+
+# Frontend
+cd frontend && npm install && cd ..
 ```
 
 ### 3. Configure environment variables
 
-```bash
-cp .env.example .env.local
-```
-
-Open `.env.local` and fill in the following:
+Create a `.env` file in the project root:
 
 ```env
-# Deployed AbiCore contract address on Somnia Testnet
-NEXT_PUBLIC_CONTRACT_ADDRESS=0x36471F4a5054886fdA2B9D8f08436d0662d06907
+# Keeper bot wallet private key (with 0x prefix — never expose this publicly)
+PRIVATE_KEY=0xyour_keeper_wallet_private_key
 
-# Keeper bot wallet private key (never expose this publicly)
-PRIVATE_KEY=your_keeper_wallet_private_key
+# Deployed AbiCore contract address on Somnia Testnet
+ABICORE_ADDRESS=0x36471F4a5054886fdA2B9D8f08436d0662d06907
 ```
+
+> The frontend contract address is configured in `frontend/lib/config.ts`.
 
 ### 4. Add Somnia Testnet to your wallet
 
 | Field | Value |
 |---|---|
 | Network Name | Somnia Testnet |
-| RPC URL | `https://api.infra.testnet.somnia.network/` |
+| RPC URL | `https://dream-rpc.somnia.network` |
 | Chain ID | `50312` |
 | Currency Symbol | `STT` |
 | Block Explorer | `https://shannon-explorer.somnia.network` |
@@ -235,7 +238,6 @@ PRIVATE_KEY=your_keeper_wallet_private_key
 
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
@@ -260,6 +262,7 @@ The keeper bot will scan for jobs in `Disputed` status every 30 seconds and auto
 | 🎥 **Demo Video** | [Watch on YouTube](https://www.youtube.com/watch?v=Zs37k8gubA4) |
 | 🌐 **Live App** | [abita-eight.vercel.app](https://abita-eight.vercel.app/) |
 | 📋 **Smart Contract** | [Shannon Explorer](https://shannon-explorer.somnia.network/address/0x36471F4a5054886fdA2B9D8f08436d0662d06907) |
+| 🧠 **On-chain Verdict** | [Somnia Agent Receipt Example](https://agents.testnet.somnia.network/receipts/5896707) |
 
 ---
 
